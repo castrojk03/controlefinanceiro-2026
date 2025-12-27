@@ -37,6 +37,10 @@ const Index = () => {
     addArea,
     addCategory,
     clearAllData,
+    deleteAccount,
+    deleteCard,
+    deleteArea,
+    deleteCategory,
   } = useFinanceData();
 
   const [activeTab, setActiveTab] = useState('general');
@@ -75,6 +79,10 @@ const Index = () => {
               onAddArea={addArea}
               onAddCategory={addCategory}
               onClearAllData={clearAllData}
+              onDeleteAccount={deleteAccount}
+              onDeleteCard={deleteCard}
+              onDeleteArea={deleteArea}
+              onDeleteCategory={deleteCategory}
             />
           </div>
         </div>
