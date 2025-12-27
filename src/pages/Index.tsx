@@ -7,7 +7,7 @@ import { ReportsPanel } from '@/components/ReportsPanel';
 import { AddTransactionDialog } from '@/components/AddTransactionDialog';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { useFinanceData } from '@/hooks/useFinanceData';
-import { LayoutDashboard, Table, Calendar, BarChart3, Wallet } from 'lucide-react';
+import { Table, Calendar, BarChart3, Wallet } from 'lucide-react';
 
 const Index = () => {
   const {
@@ -36,9 +36,10 @@ const Index = () => {
     addCard,
     addArea,
     addCategory,
+    clearAllData,
   } = useFinanceData();
 
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('general');
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,19 +74,31 @@ const Index = () => {
               onAddCard={addCard}
               onAddArea={addArea}
               onAddCategory={addCategory}
+              onClearAllData={clearAllData}
             />
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container py-6">
+      <main className="container py-6 space-y-6">
+        {/* Visão Geral - Always visible */}
+        <OverviewPanel
+          totalIncome={totalIncome}
+          totalExpense={totalExpense}
+          balance={balance}
+          previousTotalIncome={previousTotalIncome}
+          previousTotalExpense={previousTotalExpense}
+          previousBalance={previousBalance}
+          selectedMonth={selectedMonth}
+          selectedYear={selectedYear}
+          onMonthChange={setSelectedMonth}
+          onYearChange={setSelectedYear}
+        />
+
+        {/* Panel Selection Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 border-2 lg:w-auto lg:inline-grid">
-            <TabsTrigger value="overview" className="gap-2">
-              <LayoutDashboard className="h-4 w-4" />
-              <span className="hidden sm:inline">Visão Geral</span>
-            </TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 border-2 lg:w-auto lg:inline-grid">
             <TabsTrigger value="general" className="gap-2">
               <Table className="h-4 w-4" />
               <span className="hidden sm:inline">Painel Geral</span>
@@ -99,21 +112,6 @@ const Index = () => {
               <span className="hidden sm:inline">Relatórios</span>
             </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="overview" className="space-y-6">
-            <OverviewPanel
-              totalIncome={totalIncome}
-              totalExpense={totalExpense}
-              balance={balance}
-              previousTotalIncome={previousTotalIncome}
-              previousTotalExpense={previousTotalExpense}
-              previousBalance={previousBalance}
-              selectedMonth={selectedMonth}
-              selectedYear={selectedYear}
-              onMonthChange={setSelectedMonth}
-              onYearChange={setSelectedYear}
-            />
-          </TabsContent>
 
           <TabsContent value="general">
             <GeneralPanel

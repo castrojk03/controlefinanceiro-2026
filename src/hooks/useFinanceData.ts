@@ -1,14 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Account, Card, Area, Category, Income, Expense, DailyBalance } from '@/types/finance';
-import { mockAccounts, mockCards, mockAreas, mockCategories, mockIncomes, mockExpenses } from '@/lib/mockData';
 
 export function useFinanceData() {
-  const [accounts, setAccounts] = useState<Account[]>(mockAccounts);
-  const [cards, setCards] = useState<Card[]>(mockCards);
-  const [areas, setAreas] = useState<Area[]>(mockAreas);
-  const [categories, setCategories] = useState<Category[]>(mockCategories);
-  const [incomes, setIncomes] = useState<Income[]>(mockIncomes);
-  const [expenses, setExpenses] = useState<Expense[]>(mockExpenses);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [cards, setCards] = useState<Card[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [incomes, setIncomes] = useState<Income[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
@@ -181,6 +180,15 @@ export function useFinanceData() {
     setCategories([...categories, newCategory]);
   };
 
+  const clearAllData = useCallback(() => {
+    setAccounts([]);
+    setCards([]);
+    setAreas([]);
+    setCategories([]);
+    setIncomes([]);
+    setExpenses([]);
+  }, []);
+
   return {
     accounts,
     cards,
@@ -209,5 +217,6 @@ export function useFinanceData() {
     addCard,
     addArea,
     addCategory,
+    clearAllData,
   };
 }

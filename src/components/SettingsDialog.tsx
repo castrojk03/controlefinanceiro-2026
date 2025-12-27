@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Building2, CreditCard, Tags, FolderOpen, Plus } from 'lucide-react';
+import { Settings, Building2, CreditCard, Tags, FolderOpen, Plus, Trash2 } from 'lucide-react';
 import { Account, Card as CardType, Area, Category, PaymentMethod } from '@/types/finance';
 import { toast } from 'sonner';
 
@@ -18,6 +18,7 @@ interface SettingsDialogProps {
   onAddCard: (card: Omit<CardType, 'id'>) => void;
   onAddArea: (area: Omit<Area, 'id'>) => void;
   onAddCategory: (category: Omit<Category, 'id'>) => void;
+  onClearAllData: () => void;
 }
 
 const COLORS = [
@@ -39,6 +40,7 @@ export function SettingsDialog({
   onAddCard,
   onAddArea,
   onAddCategory,
+  onClearAllData,
 }: SettingsDialogProps) {
   const [open, setOpen] = useState(false);
 
@@ -122,6 +124,11 @@ export function SettingsDialog({
     setCategoryAreaId('');
   };
 
+  const handleClearAllData = () => {
+    onClearAllData();
+    toast.success('Todos os dados foram removidos!');
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -136,7 +143,7 @@ export function SettingsDialog({
         </DialogHeader>
 
         <Tabs defaultValue="accounts">
-          <TabsList className="grid w-full grid-cols-4 border-2">
+          <TabsList className="grid w-full grid-cols-5 border-2">
             <TabsTrigger value="accounts" className="gap-1 text-xs">
               <Building2 className="h-3 w-3" />
               Contas
@@ -152,6 +159,10 @@ export function SettingsDialog({
             <TabsTrigger value="categories" className="gap-1 text-xs">
               <Tags className="h-3 w-3" />
               Categorias
+            </TabsTrigger>
+            <TabsTrigger value="danger" className="gap-1 text-xs text-destructive">
+              <Trash2 className="h-3 w-3" />
+              Limpar
             </TabsTrigger>
           </TabsList>
 
@@ -403,6 +414,24 @@ export function SettingsDialog({
                   </div>
                 </div>
               ))}
+            </div>
+          </TabsContent>
+
+          {/* Danger Zone Tab */}
+          <TabsContent value="danger" className="mt-4 space-y-4">
+            <div className="border-2 border-destructive p-4 space-y-4">
+              <h4 className="font-semibold text-destructive">Zona de Perigo</h4>
+              <p className="text-sm text-muted-foreground">
+                Esta ação irá remover permanentemente todas as informações cadastradas: contas, cartões, áreas, categorias, receitas e despesas.
+              </p>
+              <Button 
+                variant="destructive" 
+                onClick={handleClearAllData}
+                className="gap-2 border-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Remover Todos os Dados
+              </Button>
             </div>
           </TabsContent>
         </Tabs>
