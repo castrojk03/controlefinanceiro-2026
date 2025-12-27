@@ -190,6 +190,23 @@ export function useFinanceData() {
     setExpenses([]);
   }, []);
 
+  const deleteAccount = useCallback((id: string) => {
+    setAccounts((prev) => prev.filter((account) => account.id !== id));
+  }, []);
+
+  const deleteCard = useCallback((id: string) => {
+    setCards((prev) => prev.filter((card) => card.id !== id));
+  }, []);
+
+  const deleteArea = useCallback((id: string) => {
+    setAreas((prev) => prev.filter((area) => area.id !== id));
+    setCategories((prev) => prev.filter((category) => category.areaId !== id));
+  }, []);
+
+  const deleteCategory = useCallback((id: string) => {
+    setCategories((prev) => prev.filter((category) => category.id !== id));
+  }, []);
+
   return {
     accounts,
     cards,
@@ -219,5 +236,9 @@ export function useFinanceData() {
     addArea,
     addCategory,
     clearAllData,
+    deleteAccount,
+    deleteCard,
+    deleteArea,
+    deleteCategory,
   };
 }

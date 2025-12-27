@@ -20,6 +20,10 @@ interface SettingsDialogProps {
   onAddArea: (area: Omit<Area, 'id'>) => void;
   onAddCategory: (category: Omit<Category, 'id'>) => void;
   onClearAllData: () => void;
+  onDeleteAccount: (id: string) => void;
+  onDeleteCard: (id: string) => void;
+  onDeleteArea: (id: string) => void;
+  onDeleteCategory: (id: string) => void;
 }
 
 const COLORS = [
@@ -42,6 +46,10 @@ export function SettingsDialog({
   onAddArea,
   onAddCategory,
   onClearAllData,
+  onDeleteAccount,
+  onDeleteCard,
+  onDeleteArea,
+  onDeleteCategory,
 }: SettingsDialogProps) {
   const [open, setOpen] = useState(false);
 
@@ -226,9 +234,22 @@ export function SettingsDialog({
                         <div className="h-4 w-4 border" style={{ backgroundColor: account.color }} />
                         <span className="font-medium">{account.name}</span>
                       </div>
-                      <span className="font-mono">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(account.balance)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono">
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(account.balance)}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            onDeleteAccount(account.id);
+                            toast.success('Conta excluída!');
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -309,7 +330,20 @@ export function SettingsDialog({
                           <span className="ml-2 text-sm text-muted-foreground">•••• {card.lastDigits}</span>
                         </div>
                       </div>
-                      <span className="text-sm text-muted-foreground">{card.type}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">{card.type}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            onDeleteCard(card.id);
+                            toast.success('Cartão excluído!');
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -361,12 +395,25 @@ export function SettingsDialog({
               <ScrollArea className="h-40">
                 <div className="space-y-2 pr-4">
                   {areas.map((area) => (
-                    <div key={area.id} className="flex items-center gap-3 border-2 p-3">
-                      <div className="h-4 w-4 border" style={{ backgroundColor: area.color }} />
-                      <span className="font-medium">{area.name}</span>
-                      <span className="text-sm text-muted-foreground">
-                        ({categories.filter(c => c.areaId === area.id).length} categorias)
-                      </span>
+                    <div key={area.id} className="flex items-center justify-between border-2 p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-4 w-4 border" style={{ backgroundColor: area.color }} />
+                        <span className="font-medium">{area.name}</span>
+                        <span className="text-sm text-muted-foreground">
+                          ({categories.filter(c => c.areaId === area.id).length} categorias)
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                        onClick={() => {
+                          onDeleteArea(area.id);
+                          toast.success('Área e categorias vinculadas excluídas!');
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -422,8 +469,17 @@ export function SettingsDialog({
                       </div>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {categories.filter(c => c.areaId === area.id).map((category) => (
-                          <span key={category.id} className="border-2 bg-secondary px-2 py-1 text-sm">
+                          <span key={category.id} className="inline-flex items-center gap-1 border-2 bg-secondary px-2 py-1 text-sm">
                             {category.name}
+                            <button
+                              className="ml-1 text-destructive hover:text-destructive/80"
+                              onClick={() => {
+                                onDeleteCategory(category.id);
+                                toast.success('Categoria excluída!');
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
                           </span>
                         ))}
                       </div>
