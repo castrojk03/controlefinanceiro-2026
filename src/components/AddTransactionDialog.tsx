@@ -308,12 +308,12 @@ export function AddTransactionDialog({
 
               <div className="grid gap-2">
                 <Label htmlFor="expense-card">Cartão (opcional)</Label>
-                <Select value={expenseCardId} onValueChange={setExpenseCardId}>
+                <Select value={expenseCardId} onValueChange={(v) => setExpenseCardId(v === 'none' ? '' : v)}>
                   <SelectTrigger className="border-2">
                     <SelectValue placeholder="Selecione um cartão" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="none">Nenhum</SelectItem>
                     {cards.map((card) => (
                       <SelectItem key={card.id} value={card.id}>
                         {card.name} ({card.type}) •••• {card.lastDigits}
