@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Settings, Building2, CreditCard, Tags, FolderOpen, Plus, Trash2 } from 'lucide-react';
 import { Account, Card as CardType, Area, Category, PaymentMethod } from '@/types/finance';
 import { toast } from 'sonner';
@@ -218,22 +217,17 @@ export function SettingsDialog({
 
             <div className="space-y-2">
               <h4 className="font-semibold">Contas Cadastradas</h4>
-              <ScrollArea className="w-full whitespace-nowrap">
-                <div className="flex gap-3 pb-3">
-                  {accounts.map((account) => (
-                    <div key={account.id} className="flex min-w-[200px] flex-col gap-1 border-2 p-3">
-                      <div className="flex items-center gap-3">
-                        <div className="h-4 w-4 shrink-0 border" style={{ backgroundColor: account.color }} />
-                        <span className="font-medium">{account.name}</span>
-                      </div>
-                      <span className="font-mono text-sm">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(account.balance)}
-                      </span>
-                    </div>
-                  ))}
+              {accounts.map((account) => (
+                <div key={account.id} className="flex items-center justify-between border-2 p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-4 w-4 border" style={{ backgroundColor: account.color }} />
+                    <span className="font-medium">{account.name}</span>
+                  </div>
+                  <span className="font-mono">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(account.balance)}
+                  </span>
                 </div>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
+              ))}
             </div>
           </TabsContent>
 
@@ -299,22 +293,18 @@ export function SettingsDialog({
 
             <div className="space-y-2">
               <h4 className="font-semibold">Cartões Cadastrados</h4>
-              <ScrollArea className="w-full whitespace-nowrap">
-                <div className="flex gap-3 pb-3">
-                  {cards.map((card) => (
-                    <div key={card.id} className="flex min-w-[180px] flex-col gap-1 border-2 p-3">
-                      <div className="flex items-center gap-3">
-                        <CreditCard className="h-5 w-5 shrink-0" style={{ color: card.color }} />
-                        <span className="font-medium">{card.name}</span>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        •••• {card.lastDigits} · {card.type}
-                      </div>
+              {cards.map((card) => (
+                <div key={card.id} className="flex items-center justify-between border-2 p-3">
+                  <div className="flex items-center gap-3">
+                    <CreditCard className="h-5 w-5" style={{ color: card.color }} />
+                    <div>
+                      <span className="font-medium">{card.name}</span>
+                      <span className="ml-2 text-sm text-muted-foreground">•••• {card.lastDigits}</span>
                     </div>
-                  ))}
+                  </div>
+                  <span className="text-sm text-muted-foreground">{card.type}</span>
                 </div>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
+              ))}
             </div>
           </TabsContent>
 
@@ -359,22 +349,15 @@ export function SettingsDialog({
 
             <div className="space-y-2">
               <h4 className="font-semibold">Áreas Cadastradas</h4>
-              <ScrollArea className="w-full whitespace-nowrap">
-                <div className="flex gap-3 pb-3">
-                  {areas.map((area) => (
-                    <div key={area.id} className="flex min-w-[150px] flex-col gap-1 border-2 p-3">
-                      <div className="flex items-center gap-2">
-                        <div className="h-4 w-4 shrink-0 border" style={{ backgroundColor: area.color }} />
-                        <span className="font-medium">{area.name}</span>
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        {categories.filter(c => c.areaId === area.id).length} categorias
-                      </span>
-                    </div>
-                  ))}
+              {areas.map((area) => (
+                <div key={area.id} className="flex items-center gap-3 border-2 p-3">
+                  <div className="h-4 w-4 border" style={{ backgroundColor: area.color }} />
+                  <span className="font-medium">{area.name}</span>
+                  <span className="text-sm text-muted-foreground">
+                    ({categories.filter(c => c.areaId === area.id).length} categorias)
+                  </span>
                 </div>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
+              ))}
             </div>
           </TabsContent>
 
@@ -416,28 +399,21 @@ export function SettingsDialog({
 
             <div className="space-y-2">
               <h4 className="font-semibold">Categorias por Área</h4>
-              <ScrollArea className="h-[200px]">
-                <div className="space-y-3 pr-4">
-                  {areas.map((area) => (
-                    <div key={area.id} className="border-2 p-3">
-                      <div className="flex items-center gap-2 font-semibold">
-                        <div className="h-3 w-3 shrink-0 border" style={{ backgroundColor: area.color }} />
-                        {area.name}
-                      </div>
-                      <ScrollArea className="mt-2 w-full whitespace-nowrap">
-                        <div className="flex gap-2 pb-2">
-                          {categories.filter(c => c.areaId === area.id).map((category) => (
-                            <span key={category.id} className="shrink-0 border-2 bg-secondary px-2 py-1 text-sm">
-                              {category.name}
-                            </span>
-                          ))}
-                        </div>
-                        <ScrollBar orientation="horizontal" />
-                      </ScrollArea>
-                    </div>
-                  ))}
+              {areas.map((area) => (
+                <div key={area.id} className="border-2 p-3">
+                  <div className="flex items-center gap-2 font-semibold">
+                    <div className="h-3 w-3 border" style={{ backgroundColor: area.color }} />
+                    {area.name}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {categories.filter(c => c.areaId === area.id).map((category) => (
+                      <span key={category.id} className="border-2 bg-secondary px-2 py-1 text-sm">
+                        {category.name}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </ScrollArea>
+              ))}
             </div>
           </TabsContent>
 
