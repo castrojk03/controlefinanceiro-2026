@@ -41,6 +41,18 @@ export interface Income {
   accountId: string;
 }
 
+export type ExpenseStatus = 'paid' | 'scheduled';
+export type RecurrenceType = 'none' | 'date_range' | 'installments' | 'frequency';
+export type RecurrenceFrequency = 'weekly' | 'monthly' | 'yearly';
+
+export interface RecurrenceConfig {
+  type: RecurrenceType;
+  startDate?: Date;
+  endDate?: Date;
+  installments?: number;
+  frequency?: RecurrenceFrequency;
+}
+
 export interface Expense {
   id: string;
   description: string;
@@ -51,6 +63,12 @@ export interface Expense {
   cardId?: string;
   areaId: string;
   categoryId: string;
+  status: ExpenseStatus;
+  paymentDate?: Date;
+  recurrence?: RecurrenceConfig;
+  parentId?: string; // Para parcelas geradas de despesas recorrentes
+  installmentNumber?: number; // Número da parcela
+  totalInstallments?: number; // Total de parcelas
 }
 
 export interface DailyBalance {
