@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +10,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Settings, Building2, CreditCard, Tags, FolderOpen, Plus, Trash2 } from 'lucide-react';
 import { Account, Card as CardType, Area, Category, PaymentMethod } from '@/types/finance';
 import { toast } from 'sonner';
+
+type DeleteItem = 
+  | { type: 'account'; id: string; name: string }
+  | { type: 'card'; id: string; name: string }
+  | { type: 'area'; id: string; name: string }
+  | { type: 'category'; id: string; name: string }
+  | null;
 
 interface SettingsDialogProps {
   accounts: Account[];
@@ -52,6 +60,45 @@ export function SettingsDialog({
   onDeleteCategory,
 }: SettingsDialogProps) {
   const [open, setOpen] = useState(false);
+  const [deleteItem, setDeleteItem] = useState<DeleteItem>(null);
+
+  const handleConfirmDelete = () => {
+    if (!deleteItem) return;
+    
+    switch (deleteItem.type) {
+      case 'account':
+        onDeleteAccount(deleteItem.id);
+        toast.success('Conta excluída!');
+        break;
+      case 'card':
+        onDeleteCard(deleteItem.id);
+        toast.success('Cartão excluído!');
+        break;
+      case 'area':
+        onDeleteArea(deleteItem.id);
+        toast.success('Área e categorias vinculadas excluídas!');
+        break;
+      case 'category':
+        onDeleteCategory(deleteItem.id);
+        toast.success('Categoria excluída!');
+        break;
+    }
+    setDeleteItem(null);
+  };
+
+  const getDeleteMessage = () => {
+    if (!deleteItem) return '';
+    switch (deleteItem.type) {
+      case 'account':
+        return `Tem certeza que deseja excluir a conta "${deleteItem.name}"?`;
+      case 'card':
+        return `Tem certeza que deseja excluir o cartão "${deleteItem.name}"?`;
+      case 'area':
+        return `Tem certeza que deseja excluir a área "${deleteItem.name}"? Todas as categorias vinculadas também serão excluídas!`;
+      case 'category':
+        return `Tem certeza que deseja excluir a categoria "${deleteItem.name}"?`;
+    }
+  };
 
   // Account form
   const [accountName, setAccountName] = useState('');
@@ -238,14 +285,11 @@ export function SettingsDialog({
                         <span className="font-mono">
                           {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(account.balance)}
                         </span>
-                        <Button
+                      <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                          onClick={() => {
-                            onDeleteAccount(account.id);
-                            toast.success('Conta excluída!');
-                          }}
+                          onClick={() => setDeleteItem({ type: 'account', id: account.id, name: account.name })}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -336,10 +380,7 @@ export function SettingsDialog({
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                          onClick={() => {
-                            onDeleteCard(card.id);
-                            toast.success('Cartão excluído!');
-                          }}
+                          onClick={() => setDeleteItem({ type: 'card', id: card.id, name: card.name })}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -407,10 +448,7 @@ export function SettingsDialog({
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                        onClick={() => {
-                          onDeleteArea(area.id);
-                          toast.success('Área e categorias vinculadas excluídas!');
-                        }}
+                        onClick={() => setDeleteItem({ type: 'area', id: area.id, name: area.name })}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -473,10 +511,7 @@ export function SettingsDialog({
                             {category.name}
                             <button
                               className="ml-1 text-destructive hover:text-destructive/80"
-                              onClick={() => {
-                                onDeleteCategory(category.id);
-                                toast.success('Categoria excluída!');
-                              }}
+                              onClick={() => setDeleteItem({ type: 'category', id: category.id, name: category.name })}
                             >
                               <Trash2 className="h-3 w-3" />
                             </button>
@@ -509,6 +544,26 @@ export function SettingsDialog({
           </TabsContent>
         </Tabs>
       </DialogContent>
+
+      <AlertDialog open={!!deleteItem} onOpenChange={(open) => !open && setDeleteItem(null)}>
+        <AlertDialogContent className="border-2">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              {getDeleteMessage()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-2">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-2"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
