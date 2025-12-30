@@ -8,7 +8,6 @@ import { AddTransactionDialog } from '@/components/AddTransactionDialog';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { useFinanceData } from '@/hooks/useFinanceData';
 import { Table, Calendar, BarChart3, Wallet } from 'lucide-react';
-
 const Index = () => {
   const {
     accounts,
@@ -40,18 +39,15 @@ const Index = () => {
     deleteAccount,
     deleteCard,
     deleteArea,
-    deleteCategory,
+    deleteCategory
   } = useFinanceData();
-
   const [activeTab, setActiveTab] = useState('general');
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b-2 bg-background">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center border-2 bg-primary">
+            <div className="flex h-10 w-10 items-center justify-center bg-primary border-8">
               <Wallet className="h-5 w-5 text-primary-foreground" />
             </div>
             <div>
@@ -61,29 +57,8 @@ const Index = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            <AddTransactionDialog
-              accounts={accounts}
-              cards={cards}
-              areas={areas}
-              categories={categories}
-              onAddIncome={addIncome}
-              onAddExpense={addExpense}
-            />
-            <SettingsDialog
-              accounts={accounts}
-              cards={cards}
-              areas={areas}
-              categories={categories}
-              onAddAccount={addAccount}
-              onAddCard={addCard}
-              onAddArea={addArea}
-              onAddCategory={addCategory}
-              onClearAllData={clearAllData}
-              onDeleteAccount={deleteAccount}
-              onDeleteCard={deleteCard}
-              onDeleteArea={deleteArea}
-              onDeleteCategory={deleteCategory}
-            />
+            <AddTransactionDialog accounts={accounts} cards={cards} areas={areas} categories={categories} onAddIncome={addIncome} onAddExpense={addExpense} />
+            <SettingsDialog accounts={accounts} cards={cards} areas={areas} categories={categories} onAddAccount={addAccount} onAddCard={addCard} onAddArea={addArea} onAddCategory={addCategory} onClearAllData={clearAllData} onDeleteAccount={deleteAccount} onDeleteCard={deleteCard} onDeleteArea={deleteArea} onDeleteCategory={deleteCategory} />
           </div>
         </div>
       </header>
@@ -91,18 +66,7 @@ const Index = () => {
       {/* Main Content */}
       <main className="container py-6 space-y-6">
         {/* Visão Geral - Always visible */}
-        <OverviewPanel
-          totalIncome={totalIncome}
-          totalExpense={totalExpense}
-          balance={balance}
-          previousTotalIncome={previousTotalIncome}
-          previousTotalExpense={previousTotalExpense}
-          previousBalance={previousBalance}
-          selectedMonth={selectedMonth}
-          selectedYear={selectedYear}
-          onMonthChange={setSelectedMonth}
-          onYearChange={setSelectedYear}
-        />
+        <OverviewPanel totalIncome={totalIncome} totalExpense={totalExpense} balance={balance} previousTotalIncome={previousTotalIncome} previousTotalExpense={previousTotalExpense} previousBalance={previousBalance} selectedMonth={selectedMonth} selectedYear={selectedYear} onMonthChange={setSelectedMonth} onYearChange={setSelectedYear} />
 
         {/* Panel Selection Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -122,37 +86,18 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="general">
-            <GeneralPanel
-              incomesByOrigin={incomesByOrigin}
-              expensesByArea={expensesByArea}
-              selectedYear={selectedYear}
-            />
+            <GeneralPanel incomesByOrigin={incomesByOrigin} expensesByArea={expensesByArea} selectedYear={selectedYear} />
           </TabsContent>
 
           <TabsContent value="daily">
-            <DailyPanel
-              dailyBalances={dailyBalances}
-              selectedMonth={selectedMonth}
-              selectedYear={selectedYear}
-            />
+            <DailyPanel dailyBalances={dailyBalances} selectedMonth={selectedMonth} selectedYear={selectedYear} />
           </TabsContent>
 
           <TabsContent value="reports">
-            <ReportsPanel
-              incomes={incomes}
-              expenses={expenses}
-              areas={areas}
-              totalIncome={totalIncome}
-              totalExpense={totalExpense}
-              balance={balance}
-              selectedMonth={selectedMonth}
-              selectedYear={selectedYear}
-            />
+            <ReportsPanel incomes={incomes} expenses={expenses} areas={areas} totalIncome={totalIncome} totalExpense={totalExpense} balance={balance} selectedMonth={selectedMonth} selectedYear={selectedYear} />
           </TabsContent>
         </Tabs>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
