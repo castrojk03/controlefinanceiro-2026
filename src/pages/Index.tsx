@@ -47,7 +47,7 @@ const Index = () => {
       <header className="sticky top-0 z-50 border-b-2 bg-background">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center bg-primary border-8">
+            <div className="flex h-10 w-10 items-center justify-center bg-primary border-2">
               <Wallet className="h-5 w-5 text-primary-foreground" />
             </div>
             <div>
