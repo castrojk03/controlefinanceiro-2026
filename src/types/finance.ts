@@ -17,6 +17,22 @@ export interface Card {
   lastDigits: string;
   color: string;
   accountId: string;
+  creditLimit: number;
+  dueDay: number;
+  closingDay: number;
+}
+
+export type InvoiceStatus = 'open' | 'closed' | 'paid';
+
+export interface Invoice {
+  id: string;
+  cardId: string;
+  month: number;
+  year: number;
+  status: InvoiceStatus;
+  totalAmount: number;
+  paidDate?: Date;
+  paidFromAccountId?: string;
 }
 
 export interface Area {

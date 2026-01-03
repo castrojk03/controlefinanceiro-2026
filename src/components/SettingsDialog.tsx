@@ -111,6 +111,9 @@ export function SettingsDialog({
   const [cardDigits, setCardDigits] = useState('');
   const [cardColor, setCardColor] = useState(COLORS[1].value);
   const [cardAccountId, setCardAccountId] = useState('');
+  const [cardLimit, setCardLimit] = useState('');
+  const [cardDueDay, setCardDueDay] = useState('');
+  const [cardClosingDay, setCardClosingDay] = useState('');
 
   // Area form
   const [areaName, setAreaName] = useState('');
@@ -137,7 +140,7 @@ export function SettingsDialog({
 
   const handleAddCard = () => {
     if (!cardName || !cardDigits || !cardAccountId) {
-      toast.error('Preencha todos os campos');
+      toast.error('Preencha todos os campos obrigatórios');
       return;
     }
     onAddCard({
@@ -146,11 +149,17 @@ export function SettingsDialog({
       lastDigits: cardDigits,
       color: cardColor,
       accountId: cardAccountId,
+      creditLimit: parseFloat(cardLimit) || 0,
+      dueDay: parseInt(cardDueDay) || 10,
+      closingDay: parseInt(cardClosingDay) || 1,
     });
     toast.success('Cartão adicionado!');
     setCardName('');
     setCardDigits('');
     setCardAccountId('');
+    setCardLimit('');
+    setCardDueDay('');
+    setCardClosingDay('');
   };
 
   const handleAddArea = () => {
@@ -355,6 +364,42 @@ export function SettingsDialog({
                   </Select>
                 </div>
               </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="grid gap-2">
+                  <Label>Limite do Cartão</Label>
+                  <Input
+                    type="number"
+                    placeholder="0,00"
+                    value={cardLimit}
+                    onChange={(e) => setCardLimit(e.target.value)}
+                    className="border-2"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Dia de Vencimento</Label>
+                  <Input
+                    type="number"
+                    placeholder="10"
+                    min={1}
+                    max={31}
+                    value={cardDueDay}
+                    onChange={(e) => setCardDueDay(e.target.value)}
+                    className="border-2"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Dia de Fechamento</Label>
+                  <Input
+                    type="number"
+                    placeholder="1"
+                    min={1}
+                    max={31}
+                    value={cardClosingDay}
+                    onChange={(e) => setCardClosingDay(e.target.value)}
+                    className="border-2"
+                  />
+                </div>
+              </div>
               <Button onClick={handleAddCard} className="gap-2 border-2">
                 <Plus className="h-4 w-4" />
                 Adicionar Cartão
@@ -370,8 +415,13 @@ export function SettingsDialog({
                       <div className="flex items-center gap-3">
                         <CreditCard className="h-5 w-5" style={{ color: card.color }} />
                         <div>
-                          <span className="font-medium">{card.name}</span>
-                          <span className="ml-2 text-sm text-muted-foreground">•••• {card.lastDigits}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{card.name}</span>
+                            <span className="text-sm text-muted-foreground">•••• {card.lastDigits}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Venc. dia {card.dueDay} | Fecha dia {card.closingDay}
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">

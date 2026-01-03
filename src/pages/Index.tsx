@@ -4,10 +4,11 @@ import { OverviewPanel } from '@/components/OverviewPanel';
 import { GeneralPanel } from '@/components/GeneralPanel';
 import { DailyPanel } from '@/components/DailyPanel';
 import { ReportsPanel } from '@/components/ReportsPanel';
+import { InvoicesPanel } from '@/components/InvoicesPanel';
 import { AddTransactionDialog } from '@/components/AddTransactionDialog';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { useFinanceData } from '@/hooks/useFinanceData';
-import { Table, Calendar, BarChart3, Wallet } from 'lucide-react';
+import { Table, Calendar, BarChart3, Wallet, Receipt } from 'lucide-react';
 const Index = () => {
   const {
     accounts,
@@ -16,6 +17,7 @@ const Index = () => {
     categories,
     incomes,
     expenses,
+    invoices,
     totalIncome,
     totalExpense,
     previousTotalIncome,
@@ -39,7 +41,10 @@ const Index = () => {
     deleteAccount,
     deleteCard,
     deleteArea,
-    deleteCategory
+    deleteCategory,
+    getCardUsedLimit,
+    getInvoiceExpenses,
+    payInvoice,
   } = useFinanceData();
   const [activeTab, setActiveTab] = useState('general');
   return <div className="min-h-screen bg-background">
@@ -66,11 +71,11 @@ const Index = () => {
       {/* Main Content */}
       <main className="container py-6 space-y-6">
         {/* Visão Geral - Always visible */}
-        <OverviewPanel totalIncome={totalIncome} totalExpense={totalExpense} balance={balance} previousTotalIncome={previousTotalIncome} previousTotalExpense={previousTotalExpense} previousBalance={previousBalance} selectedMonth={selectedMonth} selectedYear={selectedYear} onMonthChange={setSelectedMonth} onYearChange={setSelectedYear} />
+        <OverviewPanel totalIncome={totalIncome} totalExpense={totalExpense} balance={balance} previousTotalIncome={previousTotalIncome} previousTotalExpense={previousTotalExpense} previousBalance={previousBalance} selectedMonth={selectedMonth} selectedYear={selectedYear} onMonthChange={setSelectedMonth} onYearChange={setSelectedYear} cards={cards} accounts={accounts} getCardUsedLimit={getCardUsedLimit} />
 
         {/* Panel Selection Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 border-2 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-4 border-2 lg:w-auto lg:inline-grid">
             <TabsTrigger value="general" className="gap-2">
               <Table className="h-4 w-4" />
               <span className="hidden sm:inline">Painel Geral</span>
@@ -78,6 +83,10 @@ const Index = () => {
             <TabsTrigger value="daily" className="gap-2">
               <Calendar className="h-4 w-4" />
               <span className="hidden sm:inline">Painel Diário</span>
+            </TabsTrigger>
+            <TabsTrigger value="invoices" className="gap-2">
+              <Receipt className="h-4 w-4" />
+              <span className="hidden sm:inline">Faturas</span>
             </TabsTrigger>
             <TabsTrigger value="reports" className="gap-2">
               <BarChart3 className="h-4 w-4" />
@@ -91,6 +100,10 @@ const Index = () => {
 
           <TabsContent value="daily">
             <DailyPanel dailyBalances={dailyBalances} selectedMonth={selectedMonth} selectedYear={selectedYear} />
+          </TabsContent>
+
+          <TabsContent value="invoices">
+            <InvoicesPanel cards={cards} accounts={accounts} expenses={expenses} invoices={invoices} selectedMonth={selectedMonth} selectedYear={selectedYear} onPayInvoice={payInvoice} getCardUsedLimit={getCardUsedLimit} getInvoiceExpenses={getInvoiceExpenses} />
           </TabsContent>
 
           <TabsContent value="reports">

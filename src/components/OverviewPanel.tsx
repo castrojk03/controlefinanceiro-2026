@@ -1,6 +1,7 @@
-import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight, CreditCard } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card as CardType, Account } from '@/types/finance';
 
 interface OverviewPanelProps {
   totalIncome: number;
@@ -13,6 +14,9 @@ interface OverviewPanelProps {
   selectedYear: number;
   onMonthChange: (month: number) => void;
   onYearChange: (year: number) => void;
+  cards: CardType[];
+  accounts: Account[];
+  getCardUsedLimit: (cardId: string) => number;
 }
 
 const MONTHS = [
@@ -43,6 +47,9 @@ export function OverviewPanel({
   selectedYear,
   onMonthChange,
   onYearChange,
+  cards,
+  accounts,
+  getCardUsedLimit,
 }: OverviewPanelProps) {
   const incomeChange = calculatePercentageChange(totalIncome, previousTotalIncome);
   const expenseChange = calculatePercentageChange(totalExpense, previousTotalExpense);
@@ -153,6 +160,50 @@ export function OverviewPanel({
           </CardContent>
         </Card>
       </div>
+
+      {/* Cards Section */}
+      {cards.filter(c => c.type === 'Crédito').length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Cartões</h3>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {cards.filter(c => c.type === 'Crédito').map(card => {
+              const usedLimit = getCardUsedLimit(card.id);
+              const availableLimit = card.creditLimit - usedLimit;
+              const account = accounts.find(a => a.id === card.accountId);
+
+              return (
+                <Card key={card.id} className="border-2 shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <CreditCard className="h-6 w-6" style={{ color: card.color }} />
+                      <div>
+                        <p className="font-semibold">{card.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Venc. dia {card.dueDay} | Fecha dia {card.closingDay}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-1 mt-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Limite</span>
+                        <span className="font-medium">{formatCurrency(card.creditLimit)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Utilizado</span>
+                        <span className="font-medium text-destructive">{formatCurrency(usedLimit)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Disponível</span>
+                        <span className="font-medium text-chart-2">{formatCurrency(availableLimit)}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
