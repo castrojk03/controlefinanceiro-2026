@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Account, Card, Area, Category, Income, Expense, DailyBalance, RecurrenceConfig } from '@/types/finance';
+import { Account, Card, Area, Category, Income, Expense, DailyBalance, RecurrenceConfig, Invoice, InvoiceStatus } from '@/types/finance';
 import { initialAreas, initialCategories } from '@/lib/mockData';
 import { addMonths, addWeeks, addYears, differenceInMonths, isSameMonth, isSameYear } from 'date-fns';
 
@@ -76,6 +76,7 @@ export function useFinanceData() {
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
@@ -229,6 +230,155 @@ export function useFinanceData() {
     return grouped;
   }, [expandedExpenses, areas, categories, selectedYear]);
 
+  // Get used credit limit for a card (sum of unpaid credit card expenses)
+  const getCardUsedLimit = useCallback((cardId: string): number => {
+    return expandedExpenses
+      .filter(e => e.cardId === cardId && e.status !== 'paid')
+      .reduce((acc, e) => acc + e.value, 0);
+  }, [expandedExpenses]);
+
+  // Get expenses for a specific invoice (card + month + year)
+  const getInvoiceExpenses = useCallback((cardId: string, month: number, year: number): Expense[] => {
+    const card = cards.find(c => c.id === cardId);
+    if (!card) return [];
+
+    return expandedExpenses.filter(expense => {
+      if (expense.cardId !== cardId) return false;
+      
+      const expenseDate = new Date(expense.date);
+      const expenseDay = expenseDate.getDate();
+      const expenseMonth = expenseDate.getMonth();
+      const expenseYear = expenseDate.getFullYear();
+
+      // If expense date is after closing day, it goes to next month's invoice
+      if (expenseDay > card.closingDay) {
+        const nextMonth = expenseMonth === 11 ? 0 : expenseMonth + 1;
+        const nextYear = expenseMonth === 11 ? expenseYear + 1 : expenseYear;
+        return nextMonth === month && nextYear === year;
+      } else {
+        return expenseMonth === month && expenseYear === year;
+      }
+    });
+  }, [expandedExpenses, cards]);
+
+  // Determine invoice status based on current date and closing day
+  const getInvoiceStatus = useCallback((cardId: string, month: number, year: number): InvoiceStatus => {
+    const card = cards.find(c => c.id === cardId);
+    if (!card) return 'closed';
+
+    // Check if already paid
+    const existingInvoice = invoices.find(inv => 
+      inv.cardId === cardId && inv.month === month && inv.year === year
+    );
+    if (existingInvoice?.status === 'paid') return 'paid';
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const currentDay = now.getDate();
+
+    // If invoice is for current month and before closing day, it's open
+    if (year === currentYear && month === currentMonth && currentDay < card.closingDay) {
+      return 'open';
+    }
+
+    // Otherwise it's closed
+    return 'closed';
+  }, [cards, invoices]);
+
+  // Generate invoices for cards based on expenses
+  const generatedInvoices = useMemo((): Invoice[] => {
+    const invoiceMap = new Map<string, Invoice>();
+
+    cards.filter(c => c.type === 'Crédito').forEach(card => {
+      // Get all months with expenses for this card
+      expandedExpenses
+        .filter(e => e.cardId === card.id)
+        .forEach(expense => {
+          const expenseDate = new Date(expense.date);
+          let invoiceMonth = expenseDate.getMonth();
+          let invoiceYear = expenseDate.getFullYear();
+
+          // If after closing day, goes to next month
+          if (expenseDate.getDate() > card.closingDay) {
+            if (invoiceMonth === 11) {
+              invoiceMonth = 0;
+              invoiceYear++;
+            } else {
+              invoiceMonth++;
+            }
+          }
+
+          const key = `${card.id}-${invoiceMonth}-${invoiceYear}`;
+          
+          if (!invoiceMap.has(key)) {
+            const existingInvoice = invoices.find(inv => 
+              inv.cardId === card.id && inv.month === invoiceMonth && inv.year === invoiceYear
+            );
+
+            invoiceMap.set(key, {
+              id: key,
+              cardId: card.id,
+              month: invoiceMonth,
+              year: invoiceYear,
+              status: existingInvoice?.status || getInvoiceStatus(card.id, invoiceMonth, invoiceYear),
+              totalAmount: 0,
+              paidDate: existingInvoice?.paidDate,
+              paidFromAccountId: existingInvoice?.paidFromAccountId,
+            });
+          }
+
+          const invoice = invoiceMap.get(key)!;
+          invoice.totalAmount += expense.value;
+        });
+    });
+
+    return Array.from(invoiceMap.values());
+  }, [cards, expandedExpenses, invoices, getInvoiceStatus]);
+
+  // Pay an invoice
+  const payInvoice = useCallback((invoiceId: string, paymentDate: Date, accountId: string) => {
+    setInvoices(prev => {
+      const existing = prev.find(inv => inv.id === invoiceId);
+      if (existing) {
+        return prev.map(inv => 
+          inv.id === invoiceId 
+            ? { ...inv, status: 'paid' as InvoiceStatus, paidDate: paymentDate, paidFromAccountId: accountId }
+            : inv
+        );
+      } else {
+        // Parse invoice ID to get card/month/year
+        const parts = invoiceId.split('-');
+        const cardId = parts[0];
+        const month = parseInt(parts[1]);
+        const year = parseInt(parts[2]);
+        const invoice = generatedInvoices.find(inv => inv.id === invoiceId);
+        
+        return [...prev, {
+          id: invoiceId,
+          cardId,
+          month,
+          year,
+          status: 'paid' as InvoiceStatus,
+          totalAmount: invoice?.totalAmount || 0,
+          paidDate: paymentDate,
+          paidFromAccountId: accountId,
+        }];
+      }
+    });
+
+    // Update account balance
+    const invoice = generatedInvoices.find(inv => inv.id === invoiceId);
+    if (invoice) {
+      setAccounts(prev => prev.map(acc => 
+        acc.id === accountId 
+          ? { ...acc, balance: acc.balance - invoice.totalAmount }
+          : acc
+      ));
+    }
+  }, [generatedInvoices]);
+
+
   const addIncome = (income: Omit<Income, 'id'>) => {
     const newIncome: Income = {
       ...income,
@@ -326,6 +476,7 @@ export function useFinanceData() {
     expenses: filteredExpenses,
     allIncomes: incomes,
     allExpenses: expandedExpenses,
+    invoices: generatedInvoices,
     totalIncome,
     totalExpense,
     scheduledExpense,
@@ -352,5 +503,8 @@ export function useFinanceData() {
     deleteCard,
     deleteArea,
     deleteCategory,
+    getCardUsedLimit,
+    getInvoiceExpenses,
+    payInvoice,
   };
 }
