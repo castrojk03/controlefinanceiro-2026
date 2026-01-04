@@ -133,6 +133,11 @@ export function AddTransactionDialog({
       return;
     }
 
+    if (expenseStatus === 'scheduled' && !expensePaymentDate) {
+      toast.error('Selecione a data de pagamento prevista para despesas agendadas');
+      return;
+    }
+
     // Build recurrence config if enabled
     let recurrence: RecurrenceConfig | undefined;
     if (isRecurrent) {
@@ -160,7 +165,7 @@ export function AddTransactionDialog({
       areaId: expenseAreaId,
       categoryId: expenseCategoryId,
       status: expenseStatus,
-      paymentDate: expenseStatus === 'paid' ? new Date(expensePaymentDate) : undefined,
+      paymentDate: expensePaymentDate ? new Date(expensePaymentDate) : undefined,
       recurrence,
     });
 
@@ -431,18 +436,18 @@ export function AddTransactionDialog({
                       </Select>
                     </div>
 
-                    {expenseStatus === 'paid' && (
-                      <div className="grid gap-2">
-                        <Label htmlFor="expense-payment-date">Data do Pagamento</Label>
-                        <Input
-                          id="expense-payment-date"
-                          type="date"
-                          value={expensePaymentDate}
-                          onChange={(e) => setExpensePaymentDate(e.target.value)}
-                          className="border-2"
-                        />
-                      </div>
-                    )}
+                    <div className="grid gap-2">
+                      <Label htmlFor="expense-payment-date">
+                        {expenseStatus === 'scheduled' ? 'Data de Pagamento Prevista *' : 'Data do Pagamento'}
+                      </Label>
+                      <Input
+                        id="expense-payment-date"
+                        type="date"
+                        value={expensePaymentDate}
+                        onChange={(e) => setExpensePaymentDate(e.target.value)}
+                        className="border-2"
+                      />
+                    </div>
                   </div>
                 </div>
 
