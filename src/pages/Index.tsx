@@ -5,10 +5,11 @@ import { GeneralPanel } from '@/components/GeneralPanel';
 import { DailyPanel } from '@/components/DailyPanel';
 import { ReportsPanel } from '@/components/ReportsPanel';
 import { InvoicesPanel } from '@/components/InvoicesPanel';
+import { CalendarPanel } from '@/components/CalendarPanel';
 import { AddTransactionDialog } from '@/components/AddTransactionDialog';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { useFinanceData } from '@/hooks/useFinanceData';
-import { Table, Calendar, BarChart3, Wallet, Receipt } from 'lucide-react';
+import { Table, Calendar, BarChart3, Wallet, Receipt, CalendarDays } from 'lucide-react';
 const Index = () => {
   const {
     accounts,
@@ -17,6 +18,8 @@ const Index = () => {
     categories,
     incomes,
     expenses,
+    allIncomes,
+    allExpenses,
     invoices,
     totalIncome,
     totalExpense,
@@ -75,7 +78,7 @@ const Index = () => {
 
         {/* Panel Selection Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 border-2 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-5 border-2 lg:w-auto lg:inline-grid">
             <TabsTrigger value="general" className="gap-2">
               <Table className="h-4 w-4" />
               <span className="hidden sm:inline">Painel Geral</span>
@@ -83,6 +86,10 @@ const Index = () => {
             <TabsTrigger value="daily" className="gap-2">
               <Calendar className="h-4 w-4" />
               <span className="hidden sm:inline">Painel Diário</span>
+            </TabsTrigger>
+            <TabsTrigger value="calendar" className="gap-2">
+              <CalendarDays className="h-4 w-4" />
+              <span className="hidden sm:inline">Calendário</span>
             </TabsTrigger>
             <TabsTrigger value="invoices" className="gap-2">
               <Receipt className="h-4 w-4" />
@@ -100,6 +107,10 @@ const Index = () => {
 
           <TabsContent value="daily">
             <DailyPanel dailyBalances={dailyBalances} selectedMonth={selectedMonth} selectedYear={selectedYear} />
+          </TabsContent>
+
+          <TabsContent value="calendar">
+            <CalendarPanel incomes={allIncomes} expenses={allExpenses} invoices={invoices} cards={cards} />
           </TabsContent>
 
           <TabsContent value="invoices">
