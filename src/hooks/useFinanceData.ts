@@ -1,7 +1,10 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Account, Card, Area, Category, Income, Expense, DailyBalance, RecurrenceConfig, Invoice, InvoiceStatus } from '@/types/finance';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { Account, Card, Area, Category, Income, Expense, DailyBalance, Invoice, InvoiceStatus } from '@/types/finance';
 import { initialAreas, initialCategories } from '@/lib/mockData';
-import { addMonths, addWeeks, addYears, differenceInMonths, isSameMonth, isSameYear } from 'date-fns';
+import { addMonths, addWeeks, addYears, differenceInMonths } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 // Helper function to generate recurring expense instances
 function generateRecurringInstances(expense: Expense): Expense[] {
@@ -39,7 +42,6 @@ function generateRecurringInstances(expense: Expense): Expense[] {
       });
     }
   } else if (type === 'frequency' && frequency) {
-    // Generate instances for the next 12 periods for frequency-based recurrence
     const periodsToGenerate = 12;
     for (let i = 0; i < periodsToGenerate; i++) {
       let instanceDate: Date;
@@ -70,15 +72,233 @@ function generateRecurringInstances(expense: Expense): Expense[] {
 }
 
 export function useFinanceData() {
+  const { user } = useAuth();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
-  const [areas, setAreas] = useState<Area[]>(initialAreas);
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [loading, setLoading] = useState(true);
+
+  // Load all data from database
+  useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        // Load accounts
+        const { data: accountsData } = await supabase
+          .from('accounts')
+          .select('*')
+          .order('created_at');
+        
+        if (accountsData) {
+          setAccounts(accountsData.map(a => ({
+            id: a.id,
+            name: a.name,
+            balance: Number(a.balance),
+            color: a.color,
+          })));
+        }
+
+        // Load cards
+        const { data: cardsData } = await supabase
+          .from('cards')
+          .select('*')
+          .order('created_at');
+        
+        if (cardsData) {
+          setCards(cardsData.map(c => ({
+            id: c.id,
+            name: c.name,
+            type: c.type as 'Débito' | 'Crédito',
+            lastDigits: c.last_digits || '',
+            color: c.color,
+            accountId: c.account_id || '',
+            creditLimit: Number(c.credit_limit),
+            dueDay: c.due_day || 1,
+            closingDay: c.closing_day || 1,
+          })));
+        }
+
+        // Load areas
+        const { data: areasData } = await supabase
+          .from('areas')
+          .select('*')
+          .order('created_at');
+        
+        if (areasData && areasData.length > 0) {
+          setAreas(areasData.map(a => ({
+            id: a.id,
+            name: a.name,
+            color: a.color,
+          })));
+        } else {
+          // Initialize default areas for new users
+          await initializeDefaultAreas();
+        }
+
+        // Load categories
+        const { data: categoriesData } = await supabase
+          .from('categories')
+          .select('*')
+          .order('created_at');
+        
+        if (categoriesData && categoriesData.length > 0) {
+          setCategories(categoriesData.map(c => ({
+            id: c.id,
+            name: c.name,
+            areaId: c.area_id,
+          })));
+        }
+
+        // Load incomes
+        const { data: incomesData } = await supabase
+          .from('incomes')
+          .select('*')
+          .order('date', { ascending: false });
+        
+        if (incomesData) {
+          setIncomes(incomesData.map(i => ({
+            id: i.id,
+            description: i.description,
+            type: i.type as 'Fixo' | 'Variável' | 'Sazonal',
+            value: Number(i.value),
+            date: new Date(i.date),
+            origin: i.origin || '',
+            accountId: i.account_id || '',
+          })));
+        }
+
+        // Load expenses
+        const { data: expensesData } = await supabase
+          .from('expenses')
+          .select('*')
+          .order('date', { ascending: false });
+        
+        if (expensesData) {
+          setExpenses(expensesData.map(e => ({
+            id: e.id,
+            description: e.description,
+            type: e.type as 'Fixo' | 'Variável' | 'Sazonal',
+            value: Number(e.value),
+            date: new Date(e.date),
+            accountId: e.account_id || '',
+            cardId: e.card_id || undefined,
+            areaId: e.area_id || '',
+            categoryId: e.category_id || '',
+            status: e.status as 'paid' | 'scheduled',
+            paymentDate: e.payment_date ? new Date(e.payment_date) : undefined,
+            recurrence: e.recurrence_type !== 'none' ? {
+              type: e.recurrence_type as 'none' | 'date_range' | 'installments' | 'frequency',
+              startDate: e.recurrence_start_date ? new Date(e.recurrence_start_date) : undefined,
+              endDate: e.recurrence_end_date ? new Date(e.recurrence_end_date) : undefined,
+              installments: e.recurrence_installments || undefined,
+              frequency: e.recurrence_frequency as 'weekly' | 'monthly' | 'yearly' | undefined,
+            } : undefined,
+            parentId: e.parent_id || undefined,
+            installmentNumber: e.installment_number || undefined,
+            totalInstallments: e.total_installments || undefined,
+          })));
+        }
+
+        // Load invoices
+        const { data: invoicesData } = await supabase
+          .from('invoices')
+          .select('*')
+          .order('year', { ascending: false });
+        
+        if (invoicesData) {
+          setInvoices(invoicesData.map(i => ({
+            id: i.id,
+            cardId: i.card_id,
+            month: i.month,
+            year: i.year,
+            status: i.status as InvoiceStatus,
+            totalAmount: Number(i.total_amount),
+            paidDate: i.paid_date ? new Date(i.paid_date) : undefined,
+            paidFromAccountId: i.paid_from_account_id || undefined,
+          })));
+        }
+
+      } catch (error) {
+        console.error('Error loading data:', error);
+        toast.error('Erro ao carregar dados');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user]);
+
+  // Initialize default areas and categories for new users
+  const initializeDefaultAreas = async () => {
+    if (!user) return;
+
+    try {
+      // Insert default areas
+      const areasToInsert = initialAreas.map(a => ({
+        user_id: user.id,
+        name: a.name,
+        color: a.color,
+      }));
+
+      const { data: insertedAreas, error: areasError } = await supabase
+        .from('areas')
+        .insert(areasToInsert)
+        .select();
+
+      if (areasError) throw areasError;
+
+      if (insertedAreas) {
+        // Create mapping from old IDs to new IDs
+        const areaIdMap: Record<string, string> = {};
+        initialAreas.forEach((oldArea, index) => {
+          areaIdMap[oldArea.id] = insertedAreas[index].id;
+        });
+
+        // Insert default categories with new area IDs
+        const categoriesToInsert = initialCategories.map(c => ({
+          user_id: user.id,
+          name: c.name,
+          area_id: areaIdMap[c.areaId],
+        }));
+
+        const { data: insertedCategories, error: catsError } = await supabase
+          .from('categories')
+          .insert(categoriesToInsert)
+          .select();
+
+        if (catsError) throw catsError;
+
+        // Update local state
+        setAreas(insertedAreas.map(a => ({
+          id: a.id,
+          name: a.name,
+          color: a.color,
+        })));
+
+        if (insertedCategories) {
+          setCategories(insertedCategories.map(c => ({
+            id: c.id,
+            name: c.name,
+            areaId: c.area_id,
+          })));
+        }
+      }
+    } catch (error) {
+      console.error('Error initializing default data:', error);
+    }
+  };
 
   // Expand recurring expenses into individual instances
   const expandedExpenses = useMemo(() => {
@@ -129,14 +349,12 @@ export function useFinanceData() {
     return filteredIncomes.reduce((acc, income) => acc + income.value, 0);
   }, [filteredIncomes]);
 
-  // Only sum expenses that are PAID for the total expense
   const totalExpense = useMemo(() => {
     return filteredExpenses
       .filter(expense => expense.status === 'paid')
       .reduce((acc, expense) => acc + expense.value, 0);
   }, [filteredExpenses]);
 
-  // Scheduled expenses for the month (not yet paid)
   const scheduledExpense = useMemo(() => {
     return filteredExpenses
       .filter(expense => expense.status === 'scheduled')
@@ -163,7 +381,6 @@ export function useFinanceData() {
 
     for (let day = 1; day <= daysInMonth; day++) {
       const dayIncomes = filteredIncomes.filter(i => new Date(i.date).getDate() === day);
-      // Only count PAID expenses for daily balance
       const dayExpenses = filteredExpenses.filter(e => 
         new Date(e.date).getDate() === day && e.status === 'paid'
       );
@@ -204,7 +421,6 @@ export function useFinanceData() {
   const expensesByArea = useMemo(() => {
     const grouped: Record<string, { total: number[]; categories: Record<string, number[]> }> = {};
     
-    // Only count PAID expenses
     expandedExpenses.filter(e => e.status === 'paid').forEach(expense => {
       const month = new Date(expense.date).getMonth();
       const year = new Date(expense.date).getFullYear();
@@ -230,14 +446,12 @@ export function useFinanceData() {
     return grouped;
   }, [expandedExpenses, areas, categories, selectedYear]);
 
-  // Get used credit limit for a card (sum of unpaid credit card expenses)
   const getCardUsedLimit = useCallback((cardId: string): number => {
     return expandedExpenses
       .filter(e => e.cardId === cardId && e.status !== 'paid')
       .reduce((acc, e) => acc + e.value, 0);
   }, [expandedExpenses]);
 
-  // Get expenses for a specific invoice (card + month + year)
   const getInvoiceExpenses = useCallback((cardId: string, month: number, year: number): Expense[] => {
     const card = cards.find(c => c.id === cardId);
     if (!card) return [];
@@ -250,7 +464,6 @@ export function useFinanceData() {
       const expenseMonth = expenseDate.getMonth();
       const expenseYear = expenseDate.getFullYear();
 
-      // If expense date is after closing day, it goes to next month's invoice
       if (expenseDay > card.closingDay) {
         const nextMonth = expenseMonth === 11 ? 0 : expenseMonth + 1;
         const nextYear = expenseMonth === 11 ? expenseYear + 1 : expenseYear;
@@ -261,12 +474,10 @@ export function useFinanceData() {
     });
   }, [expandedExpenses, cards]);
 
-  // Determine invoice status based on current date and closing day
   const getInvoiceStatus = useCallback((cardId: string, month: number, year: number): InvoiceStatus => {
     const card = cards.find(c => c.id === cardId);
     if (!card) return 'closed';
 
-    // Check if already paid
     const existingInvoice = invoices.find(inv => 
       inv.cardId === cardId && inv.month === month && inv.year === year
     );
@@ -277,21 +488,17 @@ export function useFinanceData() {
     const currentYear = now.getFullYear();
     const currentDay = now.getDate();
 
-    // If invoice is for current month and before closing day, it's open
     if (year === currentYear && month === currentMonth && currentDay < card.closingDay) {
       return 'open';
     }
 
-    // Otherwise it's closed
     return 'closed';
   }, [cards, invoices]);
 
-  // Generate invoices for cards based on expenses
   const generatedInvoices = useMemo((): Invoice[] => {
     const invoiceMap = new Map<string, Invoice>();
 
     cards.filter(c => c.type === 'Crédito').forEach(card => {
-      // Get all months with expenses for this card
       expandedExpenses
         .filter(e => e.cardId === card.id)
         .forEach(expense => {
@@ -299,7 +506,6 @@ export function useFinanceData() {
           let invoiceMonth = expenseDate.getMonth();
           let invoiceYear = expenseDate.getFullYear();
 
-          // If after closing day, goes to next month
           if (expenseDate.getDate() > card.closingDay) {
             if (invoiceMonth === 11) {
               invoiceMonth = 0;
@@ -336,135 +542,447 @@ export function useFinanceData() {
     return Array.from(invoiceMap.values());
   }, [cards, expandedExpenses, invoices, getInvoiceStatus]);
 
-  // Pay an invoice
-  const payInvoice = useCallback((invoiceId: string, paymentDate: Date, accountId: string) => {
-    setInvoices(prev => {
-      const existing = prev.find(inv => inv.id === invoiceId);
-      if (existing) {
-        return prev.map(inv => 
-          inv.id === invoiceId 
-            ? { ...inv, status: 'paid' as InvoiceStatus, paidDate: paymentDate, paidFromAccountId: accountId }
-            : inv
-        );
-      } else {
-        // Parse invoice ID to get card/month/year
-        const parts = invoiceId.split('-');
-        const cardId = parts[0];
-        const month = parseInt(parts[1]);
-        const year = parseInt(parts[2]);
-        const invoice = generatedInvoices.find(inv => inv.id === invoiceId);
-        
-        return [...prev, {
-          id: invoiceId,
-          cardId,
-          month,
-          year,
-          status: 'paid' as InvoiceStatus,
-          totalAmount: invoice?.totalAmount || 0,
-          paidDate: paymentDate,
-          paidFromAccountId: accountId,
-        }];
-      }
-    });
+  const payInvoice = useCallback(async (invoiceId: string, paymentDate: Date, accountId: string) => {
+    if (!user) return;
 
-    // Update account balance
+    const parts = invoiceId.split('-');
+    const cardId = parts[0];
+    const month = parseInt(parts[1]);
+    const year = parseInt(parts[2]);
     const invoice = generatedInvoices.find(inv => inv.id === invoiceId);
-    if (invoice) {
-      setAccounts(prev => prev.map(acc => 
-        acc.id === accountId 
-          ? { ...acc, balance: acc.balance - invoice.totalAmount }
-          : acc
-      ));
-    }
-  }, [generatedInvoices]);
 
+    try {
+      // Check if invoice already exists in DB
+      const { data: existingInvoice } = await supabase
+        .from('invoices')
+        .select('id')
+        .eq('card_id', cardId)
+        .eq('month', month)
+        .eq('year', year)
+        .maybeSingle();
 
-  const addIncome = (income: Omit<Income, 'id'>) => {
-    const newIncome: Income = {
-      ...income,
-      id: Date.now().toString(),
-    };
-    setIncomes([...incomes, newIncome]);
-  };
-
-  const addExpense = (expense: Omit<Expense, 'id'>) => {
-    const newExpense: Expense = {
-      ...expense,
-      id: Date.now().toString(),
-    };
-    setExpenses([...expenses, newExpense]);
-  };
-
-  const updateExpenseStatus = useCallback((expenseId: string, status: 'paid' | 'scheduled', paymentDate?: Date) => {
-    setExpenses(prev => prev.map(expense => {
-      // Check if it's a recurring instance
-      if (expense.id === expenseId || expenseId.startsWith(`${expense.id}_`)) {
-        return {
-          ...expense,
-          status,
-          paymentDate: status === 'paid' ? paymentDate || new Date() : undefined,
-        };
+      if (existingInvoice) {
+        // Update existing
+        await supabase
+          .from('invoices')
+          .update({
+            status: 'paid',
+            paid_date: paymentDate.toISOString().split('T')[0],
+            paid_from_account_id: accountId,
+          })
+          .eq('id', existingInvoice.id);
+      } else {
+        // Insert new
+        await supabase
+          .from('invoices')
+          .insert({
+            user_id: user.id,
+            card_id: cardId,
+            month,
+            year,
+            status: 'paid',
+            total_amount: invoice?.totalAmount || 0,
+            paid_date: paymentDate.toISOString().split('T')[0],
+            paid_from_account_id: accountId,
+          });
       }
-      return expense;
-    }));
-  }, []);
 
-  const addAccount = (account: Omit<Account, 'id'>) => {
-    const newAccount: Account = {
-      ...account,
-      id: Date.now().toString(),
-    };
-    setAccounts([...accounts, newAccount]);
+      // Update account balance
+      if (invoice) {
+        const { data: account } = await supabase
+          .from('accounts')
+          .select('balance')
+          .eq('id', accountId)
+          .single();
+
+        if (account) {
+          await supabase
+            .from('accounts')
+            .update({ balance: Number(account.balance) - invoice.totalAmount })
+            .eq('id', accountId);
+        }
+      }
+
+      // Update local state
+      setInvoices(prev => {
+        const existing = prev.find(inv => inv.id === invoiceId);
+        if (existing) {
+          return prev.map(inv => 
+            inv.id === invoiceId 
+              ? { ...inv, status: 'paid' as InvoiceStatus, paidDate: paymentDate, paidFromAccountId: accountId }
+              : inv
+          );
+        } else {
+          return [...prev, {
+            id: invoiceId,
+            cardId,
+            month,
+            year,
+            status: 'paid' as InvoiceStatus,
+            totalAmount: invoice?.totalAmount || 0,
+            paidDate: paymentDate,
+            paidFromAccountId: accountId,
+          }];
+        }
+      });
+
+      if (invoice) {
+        setAccounts(prev => prev.map(acc => 
+          acc.id === accountId 
+            ? { ...acc, balance: acc.balance - invoice.totalAmount }
+            : acc
+        ));
+      }
+
+      toast.success('Fatura paga com sucesso!');
+    } catch (error) {
+      console.error('Error paying invoice:', error);
+      toast.error('Erro ao pagar fatura');
+    }
+  }, [user, generatedInvoices]);
+
+  const addIncome = async (income: Omit<Income, 'id'>) => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('incomes')
+        .insert({
+          user_id: user.id,
+          description: income.description,
+          type: income.type,
+          value: income.value,
+          date: income.date.toISOString().split('T')[0],
+          origin: income.origin,
+          account_id: income.accountId || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        const newIncome: Income = {
+          id: data.id,
+          description: data.description,
+          type: data.type as 'Fixo' | 'Variável' | 'Sazonal',
+          value: Number(data.value),
+          date: new Date(data.date),
+          origin: data.origin || '',
+          accountId: data.account_id || '',
+        };
+        setIncomes(prev => [newIncome, ...prev]);
+        toast.success('Receita adicionada!');
+      }
+    } catch (error) {
+      console.error('Error adding income:', error);
+      toast.error('Erro ao adicionar receita');
+    }
   };
 
-  const addCard = (card: Omit<Card, 'id'>) => {
-    const newCard: Card = {
-      ...card,
-      id: Date.now().toString(),
-    };
-    setCards([...cards, newCard]);
+  const addExpense = async (expense: Omit<Expense, 'id'>) => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .insert({
+          user_id: user.id,
+          description: expense.description,
+          type: expense.type,
+          value: expense.value,
+          date: expense.date.toISOString().split('T')[0],
+          account_id: expense.accountId || null,
+          card_id: expense.cardId || null,
+          area_id: expense.areaId || null,
+          category_id: expense.categoryId || null,
+          status: expense.status,
+          payment_date: expense.paymentDate?.toISOString().split('T')[0] || null,
+          recurrence_type: expense.recurrence?.type || 'none',
+          recurrence_start_date: expense.recurrence?.startDate?.toISOString().split('T')[0] || null,
+          recurrence_end_date: expense.recurrence?.endDate?.toISOString().split('T')[0] || null,
+          recurrence_installments: expense.recurrence?.installments || null,
+          recurrence_frequency: expense.recurrence?.frequency || null,
+          parent_id: expense.parentId || null,
+          installment_number: expense.installmentNumber || null,
+          total_installments: expense.totalInstallments || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        const newExpense: Expense = {
+          id: data.id,
+          description: data.description,
+          type: data.type as 'Fixo' | 'Variável' | 'Sazonal',
+          value: Number(data.value),
+          date: new Date(data.date),
+          accountId: data.account_id || '',
+          cardId: data.card_id || undefined,
+          areaId: data.area_id || '',
+          categoryId: data.category_id || '',
+          status: data.status as 'paid' | 'scheduled',
+          paymentDate: data.payment_date ? new Date(data.payment_date) : undefined,
+          recurrence: data.recurrence_type !== 'none' ? {
+            type: data.recurrence_type as 'none' | 'date_range' | 'installments' | 'frequency',
+            startDate: data.recurrence_start_date ? new Date(data.recurrence_start_date) : undefined,
+            endDate: data.recurrence_end_date ? new Date(data.recurrence_end_date) : undefined,
+            installments: data.recurrence_installments || undefined,
+            frequency: data.recurrence_frequency as 'weekly' | 'monthly' | 'yearly' | undefined,
+          } : undefined,
+        };
+        setExpenses(prev => [newExpense, ...prev]);
+        toast.success('Despesa adicionada!');
+      }
+    } catch (error) {
+      console.error('Error adding expense:', error);
+      toast.error('Erro ao adicionar despesa');
+    }
   };
 
-  const addArea = (area: Omit<Area, 'id'>) => {
-    const newArea: Area = {
-      ...area,
-      id: Date.now().toString(),
-    };
-    setAreas([...areas, newArea]);
+  const updateExpenseStatus = useCallback(async (expenseId: string, status: 'paid' | 'scheduled', paymentDate?: Date) => {
+    try {
+      // Handle recurring expense instances
+      const baseId = expenseId.includes('_') ? expenseId.split('_')[0] : expenseId;
+      
+      await supabase
+        .from('expenses')
+        .update({
+          status,
+          payment_date: status === 'paid' ? (paymentDate || new Date()).toISOString().split('T')[0] : null,
+        })
+        .eq('id', baseId);
+
+      setExpenses(prev => prev.map(expense => {
+        if (expense.id === baseId) {
+          return {
+            ...expense,
+            status,
+            paymentDate: status === 'paid' ? paymentDate || new Date() : undefined,
+          };
+        }
+        return expense;
+      }));
+
+      toast.success('Status atualizado!');
+    } catch (error) {
+      console.error('Error updating expense status:', error);
+      toast.error('Erro ao atualizar status');
+    }
+  }, []);
+
+  const addAccount = async (account: Omit<Account, 'id'>) => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('accounts')
+        .insert({
+          user_id: user.id,
+          name: account.name,
+          balance: account.balance,
+          color: account.color,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        const newAccount: Account = {
+          id: data.id,
+          name: data.name,
+          balance: Number(data.balance),
+          color: data.color,
+        };
+        setAccounts(prev => [...prev, newAccount]);
+        toast.success('Conta adicionada!');
+      }
+    } catch (error) {
+      console.error('Error adding account:', error);
+      toast.error('Erro ao adicionar conta');
+    }
   };
 
-  const addCategory = (category: Omit<Category, 'id'>) => {
-    const newCategory: Category = {
-      ...category,
-      id: Date.now().toString(),
-    };
-    setCategories([...categories, newCategory]);
+  const addCard = async (card: Omit<Card, 'id'>) => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('cards')
+        .insert({
+          user_id: user.id,
+          name: card.name,
+          type: card.type,
+          last_digits: card.lastDigits,
+          color: card.color,
+          account_id: card.accountId || null,
+          credit_limit: card.creditLimit,
+          due_day: card.dueDay,
+          closing_day: card.closingDay,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        const newCard: Card = {
+          id: data.id,
+          name: data.name,
+          type: data.type as 'Débito' | 'Crédito',
+          lastDigits: data.last_digits || '',
+          color: data.color,
+          accountId: data.account_id || '',
+          creditLimit: Number(data.credit_limit),
+          dueDay: data.due_day || 1,
+          closingDay: data.closing_day || 1,
+        };
+        setCards(prev => [...prev, newCard]);
+        toast.success('Cartão adicionado!');
+      }
+    } catch (error) {
+      console.error('Error adding card:', error);
+      toast.error('Erro ao adicionar cartão');
+    }
   };
 
-  const clearAllData = useCallback(() => {
-    setAccounts([]);
-    setCards([]);
-    setAreas([]);
-    setCategories([]);
-    setIncomes([]);
-    setExpenses([]);
+  const addArea = async (area: Omit<Area, 'id'>) => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('areas')
+        .insert({
+          user_id: user.id,
+          name: area.name,
+          color: area.color,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        const newArea: Area = {
+          id: data.id,
+          name: data.name,
+          color: data.color,
+        };
+        setAreas(prev => [...prev, newArea]);
+        toast.success('Área adicionada!');
+      }
+    } catch (error) {
+      console.error('Error adding area:', error);
+      toast.error('Erro ao adicionar área');
+    }
+  };
+
+  const addCategory = async (category: Omit<Category, 'id'>) => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .insert({
+          user_id: user.id,
+          name: category.name,
+          area_id: category.areaId,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        const newCategory: Category = {
+          id: data.id,
+          name: data.name,
+          areaId: data.area_id,
+        };
+        setCategories(prev => [...prev, newCategory]);
+        toast.success('Categoria adicionada!');
+      }
+    } catch (error) {
+      console.error('Error adding category:', error);
+      toast.error('Erro ao adicionar categoria');
+    }
+  };
+
+  const clearAllData = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      await Promise.all([
+        supabase.from('expenses').delete().eq('user_id', user.id),
+        supabase.from('incomes').delete().eq('user_id', user.id),
+        supabase.from('invoices').delete().eq('user_id', user.id),
+        supabase.from('categories').delete().eq('user_id', user.id),
+        supabase.from('areas').delete().eq('user_id', user.id),
+        supabase.from('cards').delete().eq('user_id', user.id),
+        supabase.from('accounts').delete().eq('user_id', user.id),
+      ]);
+
+      setAccounts([]);
+      setCards([]);
+      setAreas([]);
+      setCategories([]);
+      setIncomes([]);
+      setExpenses([]);
+      setInvoices([]);
+
+      toast.success('Dados limpos com sucesso!');
+    } catch (error) {
+      console.error('Error clearing data:', error);
+      toast.error('Erro ao limpar dados');
+    }
+  }, [user]);
+
+  const deleteAccount = useCallback(async (id: string) => {
+    try {
+      await supabase.from('accounts').delete().eq('id', id);
+      setAccounts((prev) => prev.filter((account) => account.id !== id));
+      toast.success('Conta removida!');
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast.error('Erro ao remover conta');
+    }
   }, []);
 
-  const deleteAccount = useCallback((id: string) => {
-    setAccounts((prev) => prev.filter((account) => account.id !== id));
+  const deleteCard = useCallback(async (id: string) => {
+    try {
+      await supabase.from('cards').delete().eq('id', id);
+      setCards((prev) => prev.filter((card) => card.id !== id));
+      toast.success('Cartão removido!');
+    } catch (error) {
+      console.error('Error deleting card:', error);
+      toast.error('Erro ao remover cartão');
+    }
   }, []);
 
-  const deleteCard = useCallback((id: string) => {
-    setCards((prev) => prev.filter((card) => card.id !== id));
+  const deleteArea = useCallback(async (id: string) => {
+    try {
+      await supabase.from('areas').delete().eq('id', id);
+      setAreas((prev) => prev.filter((area) => area.id !== id));
+      setCategories((prev) => prev.filter((category) => category.areaId !== id));
+      toast.success('Área removida!');
+    } catch (error) {
+      console.error('Error deleting area:', error);
+      toast.error('Erro ao remover área');
+    }
   }, []);
 
-  const deleteArea = useCallback((id: string) => {
-    setAreas((prev) => prev.filter((area) => area.id !== id));
-    setCategories((prev) => prev.filter((category) => category.areaId !== id));
-  }, []);
-
-  const deleteCategory = useCallback((id: string) => {
-    setCategories((prev) => prev.filter((category) => category.id !== id));
+  const deleteCategory = useCallback(async (id: string) => {
+    try {
+      await supabase.from('categories').delete().eq('id', id);
+      setCategories((prev) => prev.filter((category) => category.id !== id));
+      toast.success('Categoria removida!');
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      toast.error('Erro ao remover categoria');
+    }
   }, []);
 
   return {
@@ -506,5 +1024,6 @@ export function useFinanceData() {
     getCardUsedLimit,
     getInvoiceExpenses,
     payInvoice,
+    loading,
   };
 }
