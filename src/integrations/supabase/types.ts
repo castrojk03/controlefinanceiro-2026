@@ -14,7 +14,363 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      accounts: {
+        Row: {
+          balance: number | null
+          color: string
+          created_at: string | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number | null
+          color: string
+          created_at?: string | null
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          balance?: number | null
+          color?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      areas: {
+        Row: {
+          color: string
+          created_at: string | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color: string
+          created_at?: string | null
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cards: {
+        Row: {
+          account_id: string | null
+          closing_day: number | null
+          color: string
+          created_at: string | null
+          credit_limit: number | null
+          due_day: number | null
+          id: string
+          last_digits: string | null
+          name: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          closing_day?: number | null
+          color: string
+          created_at?: string | null
+          credit_limit?: number | null
+          due_day?: number | null
+          id?: string
+          last_digits?: string | null
+          name: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          closing_day?: number | null
+          color?: string
+          created_at?: string | null
+          credit_limit?: number | null
+          due_day?: number | null
+          id?: string
+          last_digits?: string | null
+          name?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cards_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categories: {
+        Row: {
+          area_id: string
+          created_at: string | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          area_id: string
+          created_at?: string | null
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          area_id?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expenses: {
+        Row: {
+          account_id: string | null
+          area_id: string | null
+          card_id: string | null
+          category_id: string | null
+          created_at: string | null
+          date: string
+          description: string
+          id: string
+          installment_number: number | null
+          parent_id: string | null
+          payment_date: string | null
+          recurrence_end_date: string | null
+          recurrence_frequency: string | null
+          recurrence_installments: number | null
+          recurrence_start_date: string | null
+          recurrence_type: string | null
+          status: string | null
+          total_installments: number | null
+          type: string
+          user_id: string
+          value: number
+        }
+        Insert: {
+          account_id?: string | null
+          area_id?: string | null
+          card_id?: string | null
+          category_id?: string | null
+          created_at?: string | null
+          date: string
+          description: string
+          id?: string
+          installment_number?: number | null
+          parent_id?: string | null
+          payment_date?: string | null
+          recurrence_end_date?: string | null
+          recurrence_frequency?: string | null
+          recurrence_installments?: number | null
+          recurrence_start_date?: string | null
+          recurrence_type?: string | null
+          status?: string | null
+          total_installments?: number | null
+          type: string
+          user_id: string
+          value: number
+        }
+        Update: {
+          account_id?: string | null
+          area_id?: string | null
+          card_id?: string | null
+          category_id?: string | null
+          created_at?: string | null
+          date?: string
+          description?: string
+          id?: string
+          installment_number?: number | null
+          parent_id?: string | null
+          payment_date?: string | null
+          recurrence_end_date?: string | null
+          recurrence_frequency?: string | null
+          recurrence_installments?: number | null
+          recurrence_start_date?: string | null
+          recurrence_type?: string | null
+          status?: string | null
+          total_installments?: number | null
+          type?: string
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incomes: {
+        Row: {
+          account_id: string | null
+          created_at: string | null
+          date: string
+          description: string
+          id: string
+          origin: string | null
+          type: string
+          user_id: string
+          value: number
+        }
+        Insert: {
+          account_id?: string | null
+          created_at?: string | null
+          date: string
+          description: string
+          id?: string
+          origin?: string | null
+          type: string
+          user_id: string
+          value: number
+        }
+        Update: {
+          account_id?: string | null
+          created_at?: string | null
+          date?: string
+          description?: string
+          id?: string
+          origin?: string | null
+          type?: string
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incomes_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          card_id: string
+          created_at: string | null
+          id: string
+          month: number
+          paid_date: string | null
+          paid_from_account_id: string | null
+          status: string | null
+          total_amount: number | null
+          user_id: string
+          year: number
+        }
+        Insert: {
+          card_id: string
+          created_at?: string | null
+          id?: string
+          month: number
+          paid_date?: string | null
+          paid_from_account_id?: string | null
+          status?: string | null
+          total_amount?: number | null
+          user_id: string
+          year: number
+        }
+        Update: {
+          card_id?: string
+          created_at?: string | null
+          id?: string
+          month?: number
+          paid_date?: string | null
+          paid_from_account_id?: string | null
+          status?: string | null
+          total_amount?: number | null
+          user_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_paid_from_account_id_fkey"
+            columns: ["paid_from_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
