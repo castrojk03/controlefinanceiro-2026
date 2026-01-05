@@ -9,8 +9,12 @@ import { CalendarPanel } from '@/components/CalendarPanel';
 import { AddTransactionDialog } from '@/components/AddTransactionDialog';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { useFinanceData } from '@/hooks/useFinanceData';
-import { Table, Calendar, BarChart3, Wallet, Receipt, CalendarDays } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { Table, Calendar, BarChart3, Wallet, Receipt, CalendarDays, LogOut } from 'lucide-react';
+
 const Index = () => {
+  const { signOut, user } = useAuth();
   const {
     accounts,
     cards,
@@ -48,9 +52,20 @@ const Index = () => {
     getCardUsedLimit,
     getInvoiceExpenses,
     payInvoice,
+    loading,
   } = useFinanceData();
   const [activeTab, setActiveTab] = useState('general');
-  return <div className="min-h-screen bg-background">
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b-2 bg-background">
         <div className="container flex h-16 items-center justify-between">
@@ -67,6 +82,9 @@ const Index = () => {
           <div className="flex items-center gap-2">
             <AddTransactionDialog accounts={accounts} cards={cards} areas={areas} categories={categories} onAddIncome={addIncome} onAddExpense={addExpense} />
             <SettingsDialog accounts={accounts} cards={cards} areas={areas} categories={categories} onAddAccount={addAccount} onAddCard={addCard} onAddArea={addArea} onAddCategory={addCategory} onClearAllData={clearAllData} onDeleteAccount={deleteAccount} onDeleteCard={deleteCard} onDeleteArea={deleteArea} onDeleteCategory={deleteCategory} />
+            <Button variant="outline" size="icon" onClick={signOut} title="Sair">
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </header>
@@ -122,6 +140,8 @@ const Index = () => {
           </TabsContent>
         </Tabs>
       </main>
-    </div>;
+    </div>
+  );
 };
+
 export default Index;
