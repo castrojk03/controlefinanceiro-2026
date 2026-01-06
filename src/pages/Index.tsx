@@ -56,6 +56,7 @@ const Index = () => {
     loading,
   } = useFinanceData();
   const [activeTab, setActiveTab] = useState('general');
+  const [showProfile, setShowProfile] = useState(false);
 
   if (loading) {
     return (
@@ -83,6 +84,9 @@ const Index = () => {
           <div className="flex items-center gap-2">
             <AddTransactionDialog accounts={accounts} cards={cards} areas={areas} categories={categories} onAddIncome={addIncome} onAddExpense={addExpense} />
             <SettingsDialog accounts={accounts} cards={cards} areas={areas} categories={categories} onAddAccount={addAccount} onAddCard={addCard} onAddArea={addArea} onAddCategory={addCategory} onClearAllData={clearAllData} onDeleteAccount={deleteAccount} onDeleteCard={deleteCard} onDeleteArea={deleteArea} onDeleteCategory={deleteCategory} />
+            <Button variant={showProfile ? "default" : "outline"} size="icon" onClick={() => setShowProfile(!showProfile)} title="Perfil">
+              <User className="h-4 w-4" />
+            </Button>
             <Button variant="outline" size="icon" onClick={signOut} title="Sair">
               <LogOut className="h-4 w-4" />
             </Button>
@@ -92,62 +96,60 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="container py-6 space-y-6">
-        {/* Visão Geral - Always visible */}
-        <OverviewPanel totalIncome={totalIncome} totalExpense={totalExpense} balance={balance} previousTotalIncome={previousTotalIncome} previousTotalExpense={previousTotalExpense} previousBalance={previousBalance} selectedMonth={selectedMonth} selectedYear={selectedYear} onMonthChange={setSelectedMonth} onYearChange={setSelectedYear} cards={cards} accounts={accounts} getCardUsedLimit={getCardUsedLimit} />
+        {showProfile ? (
+          <ProfilePanel accounts={accounts} />
+        ) : (
+          <>
+            {/* Visão Geral - Always visible */}
+            <OverviewPanel totalIncome={totalIncome} totalExpense={totalExpense} balance={balance} previousTotalIncome={previousTotalIncome} previousTotalExpense={previousTotalExpense} previousBalance={previousBalance} selectedMonth={selectedMonth} selectedYear={selectedYear} onMonthChange={setSelectedMonth} onYearChange={setSelectedYear} cards={cards} accounts={accounts} getCardUsedLimit={getCardUsedLimit} />
 
-        {/* Panel Selection Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 border-2 lg:w-auto lg:inline-grid">
-            <TabsTrigger value="general" className="gap-2">
-              <Table className="h-4 w-4" />
-              <span className="hidden sm:inline">Painel Geral</span>
-            </TabsTrigger>
-            <TabsTrigger value="daily" className="gap-2">
-              <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">Painel Diário</span>
-            </TabsTrigger>
-            <TabsTrigger value="calendar" className="gap-2">
-              <CalendarDays className="h-4 w-4" />
-              <span className="hidden sm:inline">Calendário</span>
-            </TabsTrigger>
-            <TabsTrigger value="invoices" className="gap-2">
-              <Receipt className="h-4 w-4" />
-              <span className="hidden sm:inline">Faturas</span>
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Relatórios</span>
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="gap-2">
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Perfil</span>
-            </TabsTrigger>
-          </TabsList>
+            {/* Panel Selection Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <TabsList className="grid w-full grid-cols-5 border-2 lg:w-auto lg:inline-grid">
+                <TabsTrigger value="general" className="gap-2">
+                  <Table className="h-4 w-4" />
+                  <span className="hidden sm:inline">Painel Geral</span>
+                </TabsTrigger>
+                <TabsTrigger value="daily" className="gap-2">
+                  <Calendar className="h-4 w-4" />
+                  <span className="hidden sm:inline">Painel Diário</span>
+                </TabsTrigger>
+                <TabsTrigger value="calendar" className="gap-2">
+                  <CalendarDays className="h-4 w-4" />
+                  <span className="hidden sm:inline">Calendário</span>
+                </TabsTrigger>
+                <TabsTrigger value="invoices" className="gap-2">
+                  <Receipt className="h-4 w-4" />
+                  <span className="hidden sm:inline">Faturas</span>
+                </TabsTrigger>
+                <TabsTrigger value="reports" className="gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Relatórios</span>
+                </TabsTrigger>
+              </TabsList>
 
-          <TabsContent value="general">
-            <GeneralPanel incomesByOrigin={incomesByOrigin} expensesByArea={expensesByArea} selectedYear={selectedYear} />
-          </TabsContent>
+              <TabsContent value="general">
+                <GeneralPanel incomesByOrigin={incomesByOrigin} expensesByArea={expensesByArea} selectedYear={selectedYear} />
+              </TabsContent>
 
-          <TabsContent value="daily">
-            <DailyPanel dailyBalances={dailyBalances} selectedMonth={selectedMonth} selectedYear={selectedYear} />
-          </TabsContent>
+              <TabsContent value="daily">
+                <DailyPanel dailyBalances={dailyBalances} selectedMonth={selectedMonth} selectedYear={selectedYear} />
+              </TabsContent>
 
-          <TabsContent value="calendar">
-            <CalendarPanel incomes={allIncomes} expenses={allExpenses} invoices={invoices} cards={cards} />
-          </TabsContent>
+              <TabsContent value="calendar">
+                <CalendarPanel incomes={allIncomes} expenses={allExpenses} invoices={invoices} cards={cards} />
+              </TabsContent>
 
-          <TabsContent value="invoices">
-            <InvoicesPanel cards={cards} accounts={accounts} expenses={expenses} invoices={invoices} selectedMonth={selectedMonth} selectedYear={selectedYear} onPayInvoice={payInvoice} getCardUsedLimit={getCardUsedLimit} getInvoiceExpenses={getInvoiceExpenses} />
-          </TabsContent>
+              <TabsContent value="invoices">
+                <InvoicesPanel cards={cards} accounts={accounts} expenses={expenses} invoices={invoices} selectedMonth={selectedMonth} selectedYear={selectedYear} onPayInvoice={payInvoice} getCardUsedLimit={getCardUsedLimit} getInvoiceExpenses={getInvoiceExpenses} />
+              </TabsContent>
 
-          <TabsContent value="reports">
-            <ReportsPanel incomes={incomes} expenses={expenses} areas={areas} totalIncome={totalIncome} totalExpense={totalExpense} balance={balance} selectedMonth={selectedMonth} selectedYear={selectedYear} />
-          </TabsContent>
-
-          <TabsContent value="profile">
-            <ProfilePanel accounts={accounts} />
-          </TabsContent>
-        </Tabs>
+              <TabsContent value="reports">
+                <ReportsPanel incomes={incomes} expenses={expenses} areas={areas} totalIncome={totalIncome} totalExpense={totalExpense} balance={balance} selectedMonth={selectedMonth} selectedYear={selectedYear} />
+              </TabsContent>
+            </Tabs>
+          </>
+        )}
       </main>
     </div>
   );
