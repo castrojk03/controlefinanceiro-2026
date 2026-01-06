@@ -6,12 +6,13 @@ import { DailyPanel } from '@/components/DailyPanel';
 import { ReportsPanel } from '@/components/ReportsPanel';
 import { InvoicesPanel } from '@/components/InvoicesPanel';
 import { CalendarPanel } from '@/components/CalendarPanel';
+import { ProfilePanel } from '@/components/ProfilePanel';
 import { AddTransactionDialog } from '@/components/AddTransactionDialog';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { useFinanceData } from '@/hooks/useFinanceData';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Table, Calendar, BarChart3, Wallet, Receipt, CalendarDays, LogOut } from 'lucide-react';
+import { Table, Calendar, BarChart3, Wallet, Receipt, CalendarDays, LogOut, User } from 'lucide-react';
 
 const Index = () => {
   const { signOut, user } = useAuth();
@@ -96,7 +97,7 @@ const Index = () => {
 
         {/* Panel Selection Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 border-2 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-6 border-2 lg:w-auto lg:inline-grid">
             <TabsTrigger value="general" className="gap-2">
               <Table className="h-4 w-4" />
               <span className="hidden sm:inline">Painel Geral</span>
@@ -116,6 +117,10 @@ const Index = () => {
             <TabsTrigger value="reports" className="gap-2">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Relatórios</span>
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="gap-2">
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">Perfil</span>
             </TabsTrigger>
           </TabsList>
 
@@ -137,6 +142,10 @@ const Index = () => {
 
           <TabsContent value="reports">
             <ReportsPanel incomes={incomes} expenses={expenses} areas={areas} totalIncome={totalIncome} totalExpense={totalExpense} balance={balance} selectedMonth={selectedMonth} selectedYear={selectedYear} />
+          </TabsContent>
+
+          <TabsContent value="profile">
+            <ProfilePanel accounts={accounts} />
           </TabsContent>
         </Tabs>
       </main>

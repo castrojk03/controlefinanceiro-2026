@@ -299,6 +299,39 @@ export type Database = {
           },
         ]
       }
+      invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          owner_id: string
+          role: Database["public"]["Enums"]["access_role"]
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          owner_id: string
+          role?: Database["public"]["Enums"]["access_role"]
+          token: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          owner_id?: string
+          role?: Database["public"]["Enums"]["access_role"]
+          token?: string
+        }
+        Relationships: []
+      }
       invoices: {
         Row: {
           card_id: string
@@ -371,15 +404,47 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_members: {
+        Row: {
+          created_at: string | null
+          id: string
+          member_id: string
+          owner_id: string
+          role: Database["public"]["Enums"]["access_role"]
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          member_id: string
+          owner_id: string
+          role?: Database["public"]["Enums"]["access_role"]
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          member_id?: string
+          owner_id?: string
+          role?: Database["public"]["Enums"]["access_role"]
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_effective_owner_id: { Args: never; Returns: string }
+      has_shared_access: {
+        Args: {
+          _min_role: Database["public"]["Enums"]["access_role"]
+          _owner_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      access_role: "viewer" | "editor" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -506,6 +571,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      access_role: ["viewer", "editor", "admin"],
+    },
   },
 } as const
