@@ -6,10 +6,18 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Plus, TrendingUp, TrendingDown, Calendar, Repeat } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Calendar, Repeat, AlertCircle } from 'lucide-react';
 import { Account, Card, Area, Category, TransactionType, ExpenseStatus, RecurrenceType, RecurrenceFrequency, RecurrenceConfig } from '@/types/finance';
 import { toast } from 'sonner';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { CurrencyInput } from '@/components/ui/currency-input';
+import { 
+  sanitizeText, 
+  parseMonetaryValue, 
+  parseValidDate, 
+  parseInstallments,
+  isValidDateRange 
+} from '@/lib/validation';
 
 interface AddTransactionDialogProps {
   accounts: Account[];
@@ -39,6 +47,11 @@ interface AddTransactionDialogProps {
   }) => void;
 }
 
+interface FieldError {
+  field: string;
+  message: string;
+}
+
 export function AddTransactionDialog({
   accounts,
   cards,
@@ -49,11 +62,13 @@ export function AddTransactionDialog({
 }: AddTransactionDialogProps) {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'income' | 'expense'>('expense');
+  const [errors, setErrors] = useState<FieldError[]>([]);
 
   // Income form state
   const [incomeDescription, setIncomeDescription] = useState('');
   const [incomeType, setIncomeType] = useState<TransactionType>('Fixo');
   const [incomeValue, setIncomeValue] = useState('');
+  const [incomeNumericValue, setIncomeNumericValue] = useState(0);
   const [incomeDate, setIncomeDate] = useState(new Date().toISOString().split('T')[0]);
   const [incomeOrigin, setIncomeOrigin] = useState('');
   const [incomeAccountId, setIncomeAccountId] = useState('');
@@ -62,6 +77,7 @@ export function AddTransactionDialog({
   const [expenseDescription, setExpenseDescription] = useState('');
   const [expenseType, setExpenseType] = useState<TransactionType>('Variável');
   const [expenseValue, setExpenseValue] = useState('');
+  const [expenseNumericValue, setExpenseNumericValue] = useState(0);
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
   const [expenseAccountId, setExpenseAccountId] = useState('');
   const [expenseCardId, setExpenseCardId] = useState('');
@@ -82,16 +98,22 @@ export function AddTransactionDialog({
 
   const filteredCategories = categories.filter(c => c.areaId === expenseAreaId);
 
+  const getFieldError = (field: string): string | undefined => {
+    return errors.find(e => e.field === field)?.message;
+  };
+
   const resetForm = () => {
     setIncomeDescription('');
     setIncomeType('Fixo');
     setIncomeValue('');
+    setIncomeNumericValue(0);
     setIncomeDate(new Date().toISOString().split('T')[0]);
     setIncomeOrigin('');
     setIncomeAccountId('');
     setExpenseDescription('');
     setExpenseType('Variável');
     setExpenseValue('');
+    setExpenseNumericValue(0);
     setExpenseDate(new Date().toISOString().split('T')[0]);
     setExpenseAccountId('');
     setExpenseCardId('');
@@ -105,20 +127,144 @@ export function AddTransactionDialog({
     setRecurrenceEndDate('');
     setRecurrenceInstallments('');
     setRecurrenceFrequency('monthly');
+    setErrors([]);
+  };
+
+  const validateIncome = (): boolean => {
+    const newErrors: FieldError[] = [];
+    
+    // Description validation
+    const sanitizedDescription = sanitizeText(incomeDescription);
+    if (!sanitizedDescription) {
+      newErrors.push({ field: 'income-description', message: 'Descrição é obrigatória' });
+    } else if (sanitizedDescription.length > 200) {
+      newErrors.push({ field: 'income-description', message: 'Máximo 200 caracteres' });
+    }
+
+    // Value validation
+    const value = parseMonetaryValue(incomeValue) || incomeNumericValue;
+    if (!value || value <= 0) {
+      newErrors.push({ field: 'income-value', message: 'Valor deve ser positivo' });
+    } else if (value > 999999999.99) {
+      newErrors.push({ field: 'income-value', message: 'Valor máximo excedido' });
+    }
+
+    // Date validation
+    const date = parseValidDate(incomeDate);
+    if (!date) {
+      newErrors.push({ field: 'income-date', message: 'Data inválida' });
+    } else if (!isValidDateRange(date)) {
+      newErrors.push({ field: 'income-date', message: 'Data deve estar entre 2000 e 2100' });
+    }
+
+    // Origin validation
+    const sanitizedOrigin = sanitizeText(incomeOrigin);
+    if (!sanitizedOrigin) {
+      newErrors.push({ field: 'income-origin', message: 'Origem é obrigatória' });
+    } else if (sanitizedOrigin.length > 200) {
+      newErrors.push({ field: 'income-origin', message: 'Máximo 200 caracteres' });
+    }
+
+    // Account validation
+    if (!incomeAccountId) {
+      newErrors.push({ field: 'income-account', message: 'Selecione uma conta' });
+    }
+
+    setErrors(newErrors);
+    return newErrors.length === 0;
+  };
+
+  const validateExpense = (): boolean => {
+    const newErrors: FieldError[] = [];
+
+    // Description validation
+    const sanitizedDescription = sanitizeText(expenseDescription);
+    if (!sanitizedDescription) {
+      newErrors.push({ field: 'expense-description', message: 'Descrição é obrigatória' });
+    } else if (sanitizedDescription.length > 200) {
+      newErrors.push({ field: 'expense-description', message: 'Máximo 200 caracteres' });
+    }
+
+    // Value validation
+    const value = parseMonetaryValue(expenseValue) || expenseNumericValue;
+    if (!value || value <= 0) {
+      newErrors.push({ field: 'expense-value', message: 'Valor deve ser positivo' });
+    } else if (value > 999999999.99) {
+      newErrors.push({ field: 'expense-value', message: 'Valor máximo excedido' });
+    }
+
+    // Date validation
+    const date = parseValidDate(expenseDate);
+    if (!date) {
+      newErrors.push({ field: 'expense-date', message: 'Data inválida' });
+    } else if (!isValidDateRange(date)) {
+      newErrors.push({ field: 'expense-date', message: 'Data deve estar entre 2000 e 2100' });
+    }
+
+    // Account validation
+    if (!expenseAccountId) {
+      newErrors.push({ field: 'expense-account', message: 'Selecione uma conta' });
+    }
+
+    // Area validation
+    if (!expenseAreaId) {
+      newErrors.push({ field: 'expense-area', message: 'Selecione uma área' });
+    }
+
+    // Category validation
+    if (!expenseCategoryId) {
+      newErrors.push({ field: 'expense-category', message: 'Selecione uma categoria' });
+    }
+
+    // Payment date validation for scheduled expenses
+    if (expenseStatus === 'scheduled') {
+      const paymentDate = parseValidDate(expensePaymentDate);
+      if (!paymentDate) {
+        newErrors.push({ field: 'expense-payment-date', message: 'Data de pagamento é obrigatória para despesas agendadas' });
+      }
+    }
+
+    // Recurrence validation
+    if (isRecurrent) {
+      if (recurrenceType === 'date_range') {
+        const startDate = parseValidDate(recurrenceStartDate);
+        const endDate = parseValidDate(recurrenceEndDate);
+        if (!startDate) {
+          newErrors.push({ field: 'recurrence-start-date', message: 'Data de início inválida' });
+        }
+        if (!endDate) {
+          newErrors.push({ field: 'recurrence-end-date', message: 'Data de fim é obrigatória' });
+        }
+        if (startDate && endDate && endDate <= startDate) {
+          newErrors.push({ field: 'recurrence-end-date', message: 'Data de fim deve ser após início' });
+        }
+      } else if (recurrenceType === 'installments') {
+        const installments = parseInstallments(recurrenceInstallments);
+        if (!installments) {
+          newErrors.push({ field: 'recurrence-installments', message: 'Número de parcelas inválido (1-360)' });
+        }
+      }
+    }
+
+    setErrors(newErrors);
+    return newErrors.length === 0;
   };
 
   const handleAddIncome = () => {
-    if (!incomeDescription || !incomeValue || !incomeOrigin || !incomeAccountId) {
-      toast.error('Preencha todos os campos obrigatórios');
+    if (!validateIncome()) {
+      toast.error('Corrija os erros no formulário');
       return;
     }
 
+    const value = parseMonetaryValue(incomeValue) || incomeNumericValue;
+    const date = parseValidDate(incomeDate)!;
+
     onAddIncome({
-      description: incomeDescription,
+      description: sanitizeText(incomeDescription),
       type: incomeType,
-      value: parseFloat(incomeValue),
-      date: new Date(incomeDate),
-      origin: incomeOrigin,
+      value,
+      date,
+      origin: sanitizeText(incomeOrigin),
       accountId: incomeAccountId,
     });
 
@@ -128,50 +274,59 @@ export function AddTransactionDialog({
   };
 
   const handleAddExpense = () => {
-    if (!expenseDescription || !expenseValue || !expenseAccountId || !expenseAreaId || !expenseCategoryId) {
-      toast.error('Preencha todos os campos obrigatórios');
+    if (!validateExpense()) {
+      toast.error('Corrija os erros no formulário');
       return;
     }
 
-    if (expenseStatus === 'scheduled' && !expensePaymentDate) {
-      toast.error('Selecione a data de pagamento prevista para despesas agendadas');
-      return;
-    }
+    const value = parseMonetaryValue(expenseValue) || expenseNumericValue;
+    const date = parseValidDate(expenseDate)!;
 
     // Build recurrence config if enabled
     let recurrence: RecurrenceConfig | undefined;
     if (isRecurrent) {
       recurrence = {
         type: recurrenceType,
-        startDate: new Date(recurrenceStartDate),
+        startDate: parseValidDate(recurrenceStartDate) || undefined,
       };
       
       if (recurrenceType === 'date_range' && recurrenceEndDate) {
-        recurrence.endDate = new Date(recurrenceEndDate);
+        recurrence.endDate = parseValidDate(recurrenceEndDate) || undefined;
       } else if (recurrenceType === 'installments' && recurrenceInstallments) {
-        recurrence.installments = parseInt(recurrenceInstallments);
+        recurrence.installments = parseInstallments(recurrenceInstallments) || undefined;
       } else if (recurrenceType === 'frequency') {
         recurrence.frequency = recurrenceFrequency;
       }
     }
 
     onAddExpense({
-      description: expenseDescription,
+      description: sanitizeText(expenseDescription),
       type: expenseType,
-      value: parseFloat(expenseValue),
-      date: new Date(expenseDate),
+      value,
+      date,
       accountId: expenseAccountId,
       cardId: expenseCardId || undefined,
       areaId: expenseAreaId,
       categoryId: expenseCategoryId,
       status: expenseStatus,
-      paymentDate: expensePaymentDate ? new Date(expensePaymentDate) : undefined,
+      paymentDate: expensePaymentDate ? parseValidDate(expensePaymentDate) || undefined : undefined,
       recurrence,
     });
 
     toast.success('Despesa adicionada com sucesso!');
     resetForm();
     setOpen(false);
+  };
+
+  const ErrorMessage = ({ field }: { field: string }) => {
+    const error = getFieldError(field);
+    if (!error) return null;
+    return (
+      <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+        <AlertCircle className="h-3 w-3" />
+        {error}
+      </p>
+    );
   };
 
   return (
@@ -187,7 +342,7 @@ export function AddTransactionDialog({
           <DialogTitle className="text-xl font-bold">Adicionar Transação</DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'income' | 'expense')}>
+        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as 'income' | 'expense'); setErrors([]); }}>
           <TabsList className="grid w-full grid-cols-2 border-2">
             <TabsTrigger value="income" className="gap-2 data-[state=active]:bg-chart-2 data-[state=active]:text-primary-foreground">
               <TrendingUp className="h-4 w-4" />
@@ -208,8 +363,10 @@ export function AddTransactionDialog({
                   placeholder="Ex: Salário"
                   value={incomeDescription}
                   onChange={(e) => setIncomeDescription(e.target.value)}
-                  className="border-2"
+                  maxLength={200}
+                  className={`border-2 ${getFieldError('income-description') ? 'border-destructive' : ''}`}
                 />
+                <ErrorMessage field="income-description" />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -228,15 +385,19 @@ export function AddTransactionDialog({
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="income-value">Valor (R$) *</Label>
-                  <Input
+                  <Label htmlFor="income-value">Valor *</Label>
+                  <CurrencyInput
                     id="income-value"
-                    type="number"
                     placeholder="0,00"
                     value={incomeValue}
-                    onChange={(e) => setIncomeValue(e.target.value)}
+                    onValueChange={(val, num) => {
+                      setIncomeValue(val);
+                      setIncomeNumericValue(num);
+                    }}
+                    error={!!getFieldError('income-value')}
                     className="border-2"
                   />
+                  <ErrorMessage field="income-value" />
                 </div>
               </div>
 
@@ -248,8 +409,9 @@ export function AddTransactionDialog({
                     type="date"
                     value={incomeDate}
                     onChange={(e) => setIncomeDate(e.target.value)}
-                    className="border-2"
+                    className={`border-2 ${getFieldError('income-date') ? 'border-destructive' : ''}`}
                   />
+                  <ErrorMessage field="income-date" />
                 </div>
 
                 <div className="grid gap-2">
@@ -259,15 +421,17 @@ export function AddTransactionDialog({
                     placeholder="Ex: Empresa ABC"
                     value={incomeOrigin}
                     onChange={(e) => setIncomeOrigin(e.target.value)}
-                    className="border-2"
+                    maxLength={200}
+                    className={`border-2 ${getFieldError('income-origin') ? 'border-destructive' : ''}`}
                   />
+                  <ErrorMessage field="income-origin" />
                 </div>
               </div>
 
               <div className="grid gap-2">
                 <Label htmlFor="income-account">Conta de Destino *</Label>
                 <Select value={incomeAccountId} onValueChange={setIncomeAccountId}>
-                  <SelectTrigger className="border-2">
+                  <SelectTrigger className={`border-2 ${getFieldError('income-account') ? 'border-destructive' : ''}`}>
                     <SelectValue placeholder="Selecione uma conta" />
                   </SelectTrigger>
                   <SelectContent>
@@ -278,6 +442,7 @@ export function AddTransactionDialog({
                     ))}
                   </SelectContent>
                 </Select>
+                <ErrorMessage field="income-account" />
               </div>
             </div>
 
@@ -296,8 +461,10 @@ export function AddTransactionDialog({
                     placeholder="Ex: Supermercado"
                     value={expenseDescription}
                     onChange={(e) => setExpenseDescription(e.target.value)}
-                    className="border-2"
+                    maxLength={200}
+                    className={`border-2 ${getFieldError('expense-description') ? 'border-destructive' : ''}`}
                   />
+                  <ErrorMessage field="expense-description" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -316,15 +483,19 @@ export function AddTransactionDialog({
                   </div>
 
                   <div className="grid gap-2">
-                    <Label htmlFor="expense-value">Valor (R$) *</Label>
-                    <Input
+                    <Label htmlFor="expense-value">Valor *</Label>
+                    <CurrencyInput
                       id="expense-value"
-                      type="number"
                       placeholder="0,00"
                       value={expenseValue}
-                      onChange={(e) => setExpenseValue(e.target.value)}
+                      onValueChange={(val, num) => {
+                        setExpenseValue(val);
+                        setExpenseNumericValue(num);
+                      }}
+                      error={!!getFieldError('expense-value')}
                       className="border-2"
                     />
+                    <ErrorMessage field="expense-value" />
                   </div>
                 </div>
 
@@ -336,14 +507,15 @@ export function AddTransactionDialog({
                       type="date"
                       value={expenseDate}
                       onChange={(e) => setExpenseDate(e.target.value)}
-                      className="border-2"
+                      className={`border-2 ${getFieldError('expense-date') ? 'border-destructive' : ''}`}
                     />
+                    <ErrorMessage field="expense-date" />
                   </div>
 
                   <div className="grid gap-2">
                     <Label htmlFor="expense-account">Conta *</Label>
                     <Select value={expenseAccountId} onValueChange={setExpenseAccountId}>
-                      <SelectTrigger className="border-2">
+                      <SelectTrigger className={`border-2 ${getFieldError('expense-account') ? 'border-destructive' : ''}`}>
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
@@ -354,6 +526,7 @@ export function AddTransactionDialog({
                         ))}
                       </SelectContent>
                     </Select>
+                    <ErrorMessage field="expense-account" />
                   </div>
                 </div>
 
@@ -381,7 +554,7 @@ export function AddTransactionDialog({
                       setExpenseAreaId(v);
                       setExpenseCategoryId('');
                     }}>
-                      <SelectTrigger className="border-2">
+                      <SelectTrigger className={`border-2 ${getFieldError('expense-area') ? 'border-destructive' : ''}`}>
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
@@ -392,6 +565,7 @@ export function AddTransactionDialog({
                         ))}
                       </SelectContent>
                     </Select>
+                    <ErrorMessage field="expense-area" />
                   </div>
 
                   <div className="grid gap-2">
@@ -401,7 +575,7 @@ export function AddTransactionDialog({
                       onValueChange={setExpenseCategoryId}
                       disabled={!expenseAreaId}
                     >
-                      <SelectTrigger className="border-2">
+                      <SelectTrigger className={`border-2 ${getFieldError('expense-category') ? 'border-destructive' : ''}`}>
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
@@ -412,6 +586,7 @@ export function AddTransactionDialog({
                         ))}
                       </SelectContent>
                     </Select>
+                    <ErrorMessage field="expense-category" />
                   </div>
                 </div>
 
@@ -445,8 +620,9 @@ export function AddTransactionDialog({
                         type="date"
                         value={expensePaymentDate}
                         onChange={(e) => setExpensePaymentDate(e.target.value)}
-                        className="border-2"
+                        className={`border-2 ${getFieldError('expense-payment-date') ? 'border-destructive' : ''}`}
                       />
+                      <ErrorMessage field="expense-payment-date" />
                     </div>
                   </div>
                 </div>
@@ -486,8 +662,9 @@ export function AddTransactionDialog({
                           type="date"
                           value={recurrenceStartDate}
                           onChange={(e) => setRecurrenceStartDate(e.target.value)}
-                          className="border-2"
+                          className={`border-2 ${getFieldError('recurrence-start-date') ? 'border-destructive' : ''}`}
                         />
+                        <ErrorMessage field="recurrence-start-date" />
                       </div>
 
                       {recurrenceType === 'date_range' && (
@@ -497,22 +674,25 @@ export function AddTransactionDialog({
                             type="date"
                             value={recurrenceEndDate}
                             onChange={(e) => setRecurrenceEndDate(e.target.value)}
-                            className="border-2"
+                            className={`border-2 ${getFieldError('recurrence-end-date') ? 'border-destructive' : ''}`}
                           />
+                          <ErrorMessage field="recurrence-end-date" />
                         </div>
                       )}
 
                       {recurrenceType === 'installments' && (
                         <div className="grid gap-2">
-                          <Label>Número de Parcelas</Label>
+                          <Label>Número de Parcelas (1-360)</Label>
                           <Input
                             type="number"
-                            min="2"
+                            min="1"
+                            max="360"
                             placeholder="Ex: 12"
                             value={recurrenceInstallments}
                             onChange={(e) => setRecurrenceInstallments(e.target.value)}
-                            className="border-2"
+                            className={`border-2 ${getFieldError('recurrence-installments') ? 'border-destructive' : ''}`}
                           />
+                          <ErrorMessage field="recurrence-installments" />
                         </div>
                       )}
 
