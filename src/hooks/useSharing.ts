@@ -42,19 +42,18 @@ export function useSharing() {
       return;
     }
 
-    // Fetch emails from profiles
-    const memberIds = data?.map(m => m.member_id) || [];
-    if (memberIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, email')
-        .in('id', memberIds);
+    // Use secure function to fetch member emails
+    if (data && data.length > 0) {
+      const { data: memberEmails } = await supabase
+        .rpc('get_shared_member_emails', { owner_uuid: user.id });
 
-      const membersWithEmail = data?.map(member => ({
+      const emailMap = new Map(memberEmails?.map((m: { member_id: string; email: string }) => [m.member_id, m.email]) || []);
+
+      const membersWithEmail = data.map(member => ({
         ...member,
-        email: profiles?.find(p => p.id === member.member_id)?.email || 'Email não encontrado',
+        email: emailMap.get(member.member_id) || 'Email não encontrado',
         role: member.role as AccessRole
-      })) || [];
+      }));
 
       setSharedMembers(membersWithEmail);
     } else {
