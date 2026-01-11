@@ -773,6 +773,79 @@ export function useFinanceData() {
     }
   }, []);
 
+  const updateExpense = useCallback(async (expense: Expense) => {
+    try {
+      // Handle recurring expense instances - update the base expense
+      const baseId = expense.id.includes('_') ? expense.id.split('_')[0] : expense.id;
+      
+      const { error } = await supabase
+        .from('expenses')
+        .update({
+          description: expense.description,
+          type: expense.type,
+          value: expense.value,
+          date: expense.date instanceof Date ? expense.date.toISOString().split('T')[0] : expense.date,
+          account_id: expense.accountId || null,
+          card_id: expense.cardId || null,
+          area_id: expense.areaId || null,
+          category_id: expense.categoryId || null,
+          status: expense.status,
+          payment_date: expense.paymentDate 
+            ? (expense.paymentDate instanceof Date ? expense.paymentDate.toISOString().split('T')[0] : expense.paymentDate) 
+            : null,
+        })
+        .eq('id', baseId);
+
+      if (error) throw error;
+
+      setExpenses(prev => prev.map(e => {
+        if (e.id === baseId) {
+          return {
+            ...e,
+            description: expense.description,
+            type: expense.type,
+            value: expense.value,
+            date: expense.date instanceof Date ? expense.date : new Date(expense.date),
+            accountId: expense.accountId,
+            cardId: expense.cardId,
+            areaId: expense.areaId,
+            categoryId: expense.categoryId,
+            status: expense.status,
+            paymentDate: expense.paymentDate 
+              ? (expense.paymentDate instanceof Date ? expense.paymentDate : new Date(expense.paymentDate)) 
+              : undefined,
+          };
+        }
+        return e;
+      }));
+
+      toast.success('Despesa atualizada!');
+    } catch (error) {
+      console.error('Error updating expense:', error);
+      toast.error('Erro ao atualizar despesa');
+    }
+  }, []);
+
+  const deleteExpense = useCallback(async (expenseId: string) => {
+    try {
+      // Handle recurring expense instances - delete the base expense
+      const baseId = expenseId.includes('_') ? expenseId.split('_')[0] : expenseId;
+      
+      const { error } = await supabase
+        .from('expenses')
+        .delete()
+        .eq('id', baseId);
+
+      if (error) throw error;
+
+      setExpenses(prev => prev.filter(e => e.id !== baseId));
+      toast.success('Despesa excluída!');
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      toast.error('Erro ao excluir despesa');
+    }
+  }, []);
+
   const addAccount = async (account: Omit<Account, 'id'>) => {
     if (!user) return;
 
@@ -1011,6 +1084,8 @@ export function useFinanceData() {
     setSelectedYear,
     addIncome,
     addExpense,
+    updateExpense,
+    deleteExpense,
     updateExpenseStatus,
     addAccount,
     addCard,

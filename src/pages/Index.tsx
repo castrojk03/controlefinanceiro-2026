@@ -7,14 +7,17 @@ import { ReportsPanel } from '@/components/ReportsPanel';
 import { InvoicesPanel } from '@/components/InvoicesPanel';
 import { CalendarPanel } from '@/components/CalendarPanel';
 import { ProfilePanel } from '@/components/ProfilePanel';
+import { ExpenseListPanel } from '@/components/ExpenseListPanel';
 import { AddTransactionDialog } from '@/components/AddTransactionDialog';
+import { EditExpenseDialog } from '@/components/EditExpenseDialog';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { useFinanceData } from '@/hooks/useFinanceData';
 import { useAuth } from '@/hooks/useAuth';
 import { useInactivityLogout } from '@/hooks/useInactivityLogout';
 import { useSessionMonitor } from '@/hooks/useSessionMonitor';
 import { Button } from '@/components/ui/button';
-import { Table, Calendar, BarChart3, Wallet, Receipt, CalendarDays, LogOut, User } from 'lucide-react';
+import { Table, Calendar, BarChart3, Wallet, Receipt, CalendarDays, LogOut, User, List } from 'lucide-react';
+import { Expense } from '@/types/finance';
 
 const Index = () => {
   // Security hooks - monitor session and inactivity
@@ -47,6 +50,8 @@ const Index = () => {
     setSelectedYear,
     addIncome,
     addExpense,
+    updateExpense,
+    deleteExpense,
     addAccount,
     addCard,
     addArea,
@@ -61,8 +66,17 @@ const Index = () => {
     payInvoice,
     loading,
   } = useFinanceData();
-  const [activeTab, setActiveTab] = useState('general');
+  const [activeTab, setActiveTab] = useState('expenses');
   const [showProfile, setShowProfile] = useState(false);
+  
+  // Edit expense dialog state
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const handleEditExpense = (expense: Expense) => {
+    setEditingExpense(expense);
+    setEditDialogOpen(true);
+  };
 
   if (loading) {
     return (
@@ -111,7 +125,11 @@ const Index = () => {
 
             {/* Panel Selection Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-5 border-2 lg:w-auto lg:inline-grid">
+              <TabsList className="grid w-full grid-cols-6 border-2 lg:w-auto lg:inline-grid">
+                <TabsTrigger value="expenses" className="gap-2">
+                  <List className="h-4 w-4" />
+                  <span className="hidden sm:inline">Lista de Despesas</span>
+                </TabsTrigger>
                 <TabsTrigger value="general" className="gap-2">
                   <Table className="h-4 w-4" />
                   <span className="hidden sm:inline">Painel Geral</span>
@@ -134,16 +152,43 @@ const Index = () => {
                 </TabsTrigger>
               </TabsList>
 
+              <TabsContent value="expenses">
+                <ExpenseListPanel 
+                  expenses={allExpenses} 
+                  accounts={accounts} 
+                  cards={cards} 
+                  areas={areas} 
+                  categories={categories} 
+                  onEditExpense={handleEditExpense} 
+                />
+              </TabsContent>
+
               <TabsContent value="general">
                 <GeneralPanel incomesByOrigin={incomesByOrigin} expensesByArea={expensesByArea} selectedYear={selectedYear} />
               </TabsContent>
 
               <TabsContent value="daily">
-                <DailyPanel dailyBalances={dailyBalances} selectedMonth={selectedMonth} selectedYear={selectedYear} />
+                <DailyPanel 
+                  dailyBalances={dailyBalances} 
+                  selectedMonth={selectedMonth} 
+                  selectedYear={selectedYear} 
+                  expenses={expenses}
+                  areas={areas}
+                  categories={categories}
+                  onEditExpense={handleEditExpense}
+                />
               </TabsContent>
 
               <TabsContent value="calendar">
-                <CalendarPanel incomes={allIncomes} expenses={allExpenses} invoices={invoices} cards={cards} />
+                <CalendarPanel 
+                  incomes={allIncomes} 
+                  expenses={allExpenses} 
+                  invoices={invoices} 
+                  cards={cards}
+                  areas={areas}
+                  categories={categories}
+                  onEditExpense={handleEditExpense}
+                />
               </TabsContent>
 
               <TabsContent value="invoices">
@@ -157,6 +202,19 @@ const Index = () => {
           </>
         )}
       </main>
+
+      {/* Edit Expense Dialog */}
+      <EditExpenseDialog
+        expense={editingExpense}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        accounts={accounts}
+        cards={cards}
+        areas={areas}
+        categories={categories}
+        onUpdateExpense={updateExpense}
+        onDeleteExpense={deleteExpense}
+      />
     </div>
   );
 };
