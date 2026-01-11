@@ -11,10 +11,16 @@ import { AddTransactionDialog } from '@/components/AddTransactionDialog';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { useFinanceData } from '@/hooks/useFinanceData';
 import { useAuth } from '@/hooks/useAuth';
+import { useInactivityLogout } from '@/hooks/useInactivityLogout';
+import { useSessionMonitor } from '@/hooks/useSessionMonitor';
 import { Button } from '@/components/ui/button';
 import { Table, Calendar, BarChart3, Wallet, Receipt, CalendarDays, LogOut, User } from 'lucide-react';
 
 const Index = () => {
+  // Security hooks - monitor session and inactivity
+  useInactivityLogout(30 * 60 * 1000); // 30 minutes inactivity timeout
+  useSessionMonitor();
+  
   const { signOut, user } = useAuth();
   const {
     accounts,
