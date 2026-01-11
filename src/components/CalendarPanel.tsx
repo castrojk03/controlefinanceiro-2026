@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Income, Expense, Invoice, Card as CardType } from '@/types/finance';
-import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
+import { Income, Expense, Invoice, Card as CardType, Area, Category } from '@/types/finance';
+import { ChevronLeft, ChevronRight, CalendarDays, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   format,
@@ -39,6 +39,7 @@ interface CalendarEvent {
   value: number;
   status: 'paid' | 'scheduled' | 'open' | 'closed';
   isOverdue: boolean;
+  originalExpense?: Expense;
 }
 
 interface CalendarPanelProps {
@@ -46,6 +47,9 @@ interface CalendarPanelProps {
   expenses: Expense[];
   invoices: Invoice[];
   cards: CardType[];
+  areas?: Area[];
+  categories?: Category[];
+  onEditExpense?: (expense: Expense) => void;
 }
 
 const formatCurrency = (value: number) => {
@@ -55,7 +59,7 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-export function CalendarPanel({ incomes, expenses, invoices, cards }: CalendarPanelProps) {
+export function CalendarPanel({ incomes, expenses, invoices, cards, areas = [], categories = [], onEditExpense }: CalendarPanelProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('month');
 
@@ -73,7 +77,7 @@ export function CalendarPanel({ incomes, expenses, invoices, cards }: CalendarPa
         date,
         type: 'income',
         value: income.value,
-        status: 'paid', // Incomes are always considered paid
+        status: 'paid',
         isOverdue: false,
       });
     });
@@ -90,6 +94,7 @@ export function CalendarPanel({ incomes, expenses, invoices, cards }: CalendarPa
         value: expense.value,
         status: expense.status,
         isOverdue,
+        originalExpense: expense,
       });
     });
 
@@ -98,7 +103,6 @@ export function CalendarPanel({ incomes, expenses, invoices, cards }: CalendarPa
       const card = cards.find((c) => c.id === invoice.cardId);
       if (!card) return;
 
-      // Invoice due date is the dueDay of the month
       const dueDate = new Date(invoice.year, invoice.month, card.dueDay);
       const isOverdue = invoice.status !== 'paid' && (isBefore(dueDate, today) || isSameDay(dueDate, today));
       
@@ -245,13 +249,20 @@ export function CalendarPanel({ incomes, expenses, invoices, cards }: CalendarPa
                         <div
                           key={event.id}
                           className={cn(
-                            'text-xs px-1 py-0.5 rounded truncate text-white',
+                            'text-xs px-1 py-0.5 rounded truncate text-white flex items-center gap-1',
                             getEventColor(event),
-                            getEventOpacity(event)
+                            getEventOpacity(event),
+                            event.type === 'expense' && onEditExpense && 'cursor-pointer hover:ring-1 hover:ring-white'
                           )}
                           title={`${event.title} - ${formatCurrency(event.value)}`}
+                          onClick={() => {
+                            if (event.type === 'expense' && event.originalExpense && onEditExpense) {
+                              onEditExpense(event.originalExpense);
+                            }
+                          }}
                         >
-                          {formatCurrency(event.value)}
+                          {event.type === 'expense' && onEditExpense && <Pencil className="h-2 w-2 flex-shrink-0" />}
+                          <span className="truncate">{formatCurrency(event.value)}</span>
                         </div>
                       ))}
                       {dayEvents.length > 3 && (
