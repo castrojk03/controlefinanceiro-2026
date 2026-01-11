@@ -457,6 +457,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      sanitize_text: { Args: { input: string }; Returns: string }
     }
     Enums: {
       access_role: "viewer" | "editor" | "admin"
