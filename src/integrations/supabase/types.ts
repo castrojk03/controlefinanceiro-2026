@@ -434,6 +434,24 @@ export type Database = {
     }
     Functions: {
       get_effective_owner_id: { Args: never; Returns: string }
+      get_invitation_by_token: {
+        Args: { lookup_token: string }
+        Returns: {
+          accepted_at: string
+          email: string
+          expires_at: string
+          id: string
+          owner_id: string
+          role: Database["public"]["Enums"]["access_role"]
+        }[]
+      }
+      get_shared_member_emails: {
+        Args: { owner_uuid: string }
+        Returns: {
+          email: string
+          member_id: string
+        }[]
+      }
       has_shared_access: {
         Args: {
           _min_role: Database["public"]["Enums"]["access_role"]

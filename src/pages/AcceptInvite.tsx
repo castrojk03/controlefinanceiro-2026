@@ -47,39 +47,27 @@ export default function AcceptInvite() {
         return;
       }
 
+      // Use secure function to fetch invitation
       const { data, error: fetchError } = await supabase
-        .from('invitations')
-        .select('*')
-        .eq('token', token)
-        .is('accepted_at', null)
-        .single();
+        .rpc('get_invitation_by_token', { lookup_token: token });
 
-      if (fetchError || !data) {
+      if (fetchError || !data || data.length === 0) {
         setError('Convite não encontrado ou já foi utilizado');
         setLoading(false);
         return;
       }
 
-      const expiresAt = new Date(data.expires_at);
-      if (expiresAt < new Date()) {
-        setError('Este convite expirou');
-        setLoading(false);
-        return;
-      }
-
-      // Fetch owner email
-      const { data: ownerProfile } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('id', data.owner_id)
-        .single();
+      const inviteData = data[0];
 
       setInvitation({
-        ...data,
-        role: data.role as AccessRole,
-        owner_email: ownerProfile?.email || 'Usuário'
+        id: inviteData.id,
+        owner_id: inviteData.owner_id,
+        email: inviteData.email,
+        role: inviteData.role as AccessRole,
+        expires_at: inviteData.expires_at,
+        owner_email: 'Usuário'
       });
-      setEmail(data.email);
+      setEmail(inviteData.email);
       setLoading(false);
     };
 
