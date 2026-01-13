@@ -286,12 +286,12 @@ export function EditExpenseDialog({
 
             <div className="grid gap-2">
               <Label htmlFor="card">Cartão (opcional)</Label>
-              <Select value={cardId} onValueChange={setCardId}>
+              <Select value={cardId || "none"} onValueChange={(v) => setCardId(v === "none" ? "" : v)}>
                 <SelectTrigger className="border-2">
                   <SelectValue placeholder="Nenhum" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
+              <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
                   {cards.map((card) => (
                     <SelectItem key={card.id} value={card.id}>
                       {card.name}
