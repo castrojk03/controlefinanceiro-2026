@@ -53,8 +53,10 @@ const Index = () => {
     addExpense,
     updateExpense,
     deleteExpense,
+    updateExpenseDate,
     updateIncome,
     deleteIncome,
+    updateIncomeDate,
     addAccount,
     addCard,
     addArea,
@@ -203,6 +205,8 @@ const Index = () => {
                   categories={categories}
                   onEditExpense={handleEditExpense}
                   onEditIncome={handleEditIncome}
+                  onUpdateExpenseDate={updateExpenseDate}
+                  onUpdateIncomeDate={updateIncomeDate}
                 />
               </TabsContent>
 
