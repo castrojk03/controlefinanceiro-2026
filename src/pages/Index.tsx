@@ -10,6 +10,7 @@ import { ProfilePanel } from '@/components/ProfilePanel';
 import { ExpenseListPanel } from '@/components/ExpenseListPanel';
 import { AddTransactionDialog } from '@/components/AddTransactionDialog';
 import { EditExpenseDialog } from '@/components/EditExpenseDialog';
+import { EditIncomeDialog } from '@/components/EditIncomeDialog';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { useFinanceData } from '@/hooks/useFinanceData';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,7 +18,7 @@ import { useInactivityLogout } from '@/hooks/useInactivityLogout';
 import { useSessionMonitor } from '@/hooks/useSessionMonitor';
 import { Button } from '@/components/ui/button';
 import { Table, Calendar, BarChart3, Wallet, Receipt, CalendarDays, LogOut, User, List } from 'lucide-react';
-import { Expense } from '@/types/finance';
+import { Expense, Income } from '@/types/finance';
 
 const Index = () => {
   // Security hooks - monitor session and inactivity
@@ -52,6 +53,8 @@ const Index = () => {
     addExpense,
     updateExpense,
     deleteExpense,
+    updateIncome,
+    deleteIncome,
     addAccount,
     addCard,
     addArea,
@@ -71,11 +74,20 @@ const Index = () => {
   
   // Edit expense dialog state
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editExpenseDialogOpen, setEditExpenseDialogOpen] = useState(false);
+
+  // Edit income dialog state
+  const [editingIncome, setEditingIncome] = useState<Income | null>(null);
+  const [editIncomeDialogOpen, setEditIncomeDialogOpen] = useState(false);
 
   const handleEditExpense = (expense: Expense) => {
     setEditingExpense(expense);
-    setEditDialogOpen(true);
+    setEditExpenseDialogOpen(true);
+  };
+
+  const handleEditIncome = (income: Income) => {
+    setEditingIncome(income);
+    setEditIncomeDialogOpen(true);
   };
 
   if (loading) {
@@ -173,9 +185,11 @@ const Index = () => {
                   selectedMonth={selectedMonth} 
                   selectedYear={selectedYear} 
                   expenses={expenses}
+                  incomes={incomes}
                   areas={areas}
                   categories={categories}
                   onEditExpense={handleEditExpense}
+                  onEditIncome={handleEditIncome}
                 />
               </TabsContent>
 
@@ -188,11 +202,23 @@ const Index = () => {
                   areas={areas}
                   categories={categories}
                   onEditExpense={handleEditExpense}
+                  onEditIncome={handleEditIncome}
                 />
               </TabsContent>
 
               <TabsContent value="invoices">
-                <InvoicesPanel cards={cards} accounts={accounts} expenses={expenses} invoices={invoices} selectedMonth={selectedMonth} selectedYear={selectedYear} onPayInvoice={payInvoice} getCardUsedLimit={getCardUsedLimit} getInvoiceExpenses={getInvoiceExpenses} />
+                <InvoicesPanel 
+                  cards={cards} 
+                  accounts={accounts} 
+                  expenses={expenses} 
+                  invoices={invoices} 
+                  selectedMonth={selectedMonth} 
+                  selectedYear={selectedYear} 
+                  onPayInvoice={payInvoice} 
+                  getCardUsedLimit={getCardUsedLimit} 
+                  getInvoiceExpenses={getInvoiceExpenses}
+                  onEditExpense={handleEditExpense}
+                />
               </TabsContent>
 
               <TabsContent value="reports">
@@ -206,14 +232,24 @@ const Index = () => {
       {/* Edit Expense Dialog */}
       <EditExpenseDialog
         expense={editingExpense}
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
+        open={editExpenseDialogOpen}
+        onOpenChange={setEditExpenseDialogOpen}
         accounts={accounts}
         cards={cards}
         areas={areas}
         categories={categories}
         onUpdateExpense={updateExpense}
         onDeleteExpense={deleteExpense}
+      />
+
+      {/* Edit Income Dialog */}
+      <EditIncomeDialog
+        income={editingIncome}
+        open={editIncomeDialogOpen}
+        onOpenChange={setEditIncomeDialogOpen}
+        accounts={accounts}
+        onUpdateIncome={updateIncome}
+        onDeleteIncome={deleteIncome}
       />
     </div>
   );

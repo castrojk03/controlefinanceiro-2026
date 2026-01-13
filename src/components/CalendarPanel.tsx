@@ -40,6 +40,7 @@ interface CalendarEvent {
   status: 'paid' | 'scheduled' | 'open' | 'closed';
   isOverdue: boolean;
   originalExpense?: Expense;
+  originalIncome?: Income;
 }
 
 interface CalendarPanelProps {
@@ -50,6 +51,7 @@ interface CalendarPanelProps {
   areas?: Area[];
   categories?: Category[];
   onEditExpense?: (expense: Expense) => void;
+  onEditIncome?: (income: Income) => void;
 }
 
 const formatCurrency = (value: number) => {
@@ -59,7 +61,7 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-export function CalendarPanel({ incomes, expenses, invoices, cards, areas = [], categories = [], onEditExpense }: CalendarPanelProps) {
+export function CalendarPanel({ incomes, expenses, invoices, cards, areas = [], categories = [], onEditExpense, onEditIncome }: CalendarPanelProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('month');
 
@@ -79,6 +81,7 @@ export function CalendarPanel({ incomes, expenses, invoices, cards, areas = [], 
         value: income.value,
         status: 'paid',
         isOverdue: false,
+        originalIncome: income,
       });
     });
 
@@ -370,10 +373,21 @@ export function CalendarPanel({ incomes, expenses, invoices, cards, areas = [], 
                       key={event.id}
                       className={cn(
                         'p-3 rounded border-2 border-l-4 border-l-green-500',
-                        getEventOpacity(event)
+                        getEventOpacity(event),
+                        event.originalIncome && onEditIncome && 'cursor-pointer hover:bg-secondary/50'
                       )}
+                      onClick={() => {
+                        if (event.originalIncome && onEditIncome) {
+                          onEditIncome(event.originalIncome);
+                        }
+                      }}
                     >
-                      <div className="font-medium">{event.title}</div>
+                      <div className="flex justify-between items-center">
+                        <div className="font-medium">{event.title}</div>
+                        {event.originalIncome && onEditIncome && (
+                          <Pencil className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </div>
                       <div className="text-green-600">{formatCurrency(event.value)}</div>
                     </div>
                   ))}
@@ -390,11 +404,22 @@ export function CalendarPanel({ incomes, expenses, invoices, cards, areas = [], 
                       key={event.id}
                       className={cn(
                         'p-3 rounded border-2 border-l-4 border-l-red-500',
-                        getEventOpacity(event)
+                        getEventOpacity(event),
+                        event.originalExpense && onEditExpense && 'cursor-pointer hover:bg-secondary/50'
                       )}
+                      onClick={() => {
+                        if (event.originalExpense && onEditExpense) {
+                          onEditExpense(event.originalExpense);
+                        }
+                      }}
                     >
-                      <div className="flex justify-between">
-                        <div className="font-medium">{event.title}</div>
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium">{event.title}</div>
+                          {event.originalExpense && onEditExpense && (
+                            <Pencil className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </div>
                         <div className={cn(
                           'text-xs px-2 py-0.5 rounded',
                           event.status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'

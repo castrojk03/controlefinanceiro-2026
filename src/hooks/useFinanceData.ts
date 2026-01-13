@@ -1058,6 +1058,61 @@ export function useFinanceData() {
     }
   }, []);
 
+  const updateIncome = useCallback(async (income: Income) => {
+    try {
+      const { error } = await supabase
+        .from('incomes')
+        .update({
+          description: income.description,
+          type: income.type,
+          value: income.value,
+          date: income.date instanceof Date ? income.date.toISOString().split('T')[0] : income.date,
+          origin: income.origin,
+          account_id: income.accountId || null,
+        })
+        .eq('id', income.id);
+
+      if (error) throw error;
+
+      setIncomes(prev => prev.map(i => {
+        if (i.id === income.id) {
+          return {
+            ...i,
+            description: income.description,
+            type: income.type,
+            value: income.value,
+            date: income.date instanceof Date ? income.date : new Date(income.date),
+            origin: income.origin,
+            accountId: income.accountId,
+          };
+        }
+        return i;
+      }));
+
+      toast.success('Receita atualizada!');
+    } catch (error) {
+      console.error('Error updating income:', error);
+      toast.error('Erro ao atualizar receita');
+    }
+  }, []);
+
+  const deleteIncome = useCallback(async (incomeId: string) => {
+    try {
+      const { error } = await supabase
+        .from('incomes')
+        .delete()
+        .eq('id', incomeId);
+
+      if (error) throw error;
+
+      setIncomes(prev => prev.filter(i => i.id !== incomeId));
+      toast.success('Receita excluída!');
+    } catch (error) {
+      console.error('Error deleting income:', error);
+      toast.error('Erro ao excluir receita');
+    }
+  }, []);
+
   return {
     accounts,
     cards,
@@ -1087,6 +1142,8 @@ export function useFinanceData() {
     updateExpense,
     deleteExpense,
     updateExpenseStatus,
+    updateIncome,
+    deleteIncome,
     addAccount,
     addCard,
     addArea,

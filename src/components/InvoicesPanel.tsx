@@ -7,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CreditCard, Receipt, CalendarDays, Check } from 'lucide-react';
+import { CreditCard, Receipt, CalendarDays, Check, Pencil } from 'lucide-react';
 import { Card as CardType, Expense, Invoice, InvoiceStatus, Account } from '@/types/finance';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -24,6 +24,7 @@ interface InvoicesPanelProps {
   onPayInvoice: (invoiceId: string, paymentDate: Date, accountId: string) => void;
   getCardUsedLimit: (cardId: string) => number;
   getInvoiceExpenses: (cardId: string, month: number, year: number) => Expense[];
+  onEditExpense?: (expense: Expense) => void;
 }
 
 const MONTHS = [
@@ -59,6 +60,7 @@ export function InvoicesPanel({
   onPayInvoice,
   getCardUsedLimit,
   getInvoiceExpenses,
+  onEditExpense,
 }: InvoicesPanelProps) {
   const [selectedCard, setSelectedCard] = useState<CardType | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -215,14 +217,27 @@ export function InvoicesPanel({
                     <p className="text-muted-foreground text-center py-4">Nenhuma despesa nesta fatura.</p>
                   ) : (
                     invoiceExpenses.map(expense => (
-                      <div key={expense.id} className="flex items-center justify-between border p-2">
-                        <div>
+                      <div key={expense.id} className="flex items-center justify-between border p-2 hover:bg-muted/50 transition-colors">
+                        <div className="flex-1">
                           <p className="font-medium">{expense.description}</p>
                           <p className="text-xs text-muted-foreground">
                             {format(new Date(expense.date), 'dd/MM/yyyy')}
                           </p>
                         </div>
-                        <span className="font-mono">{formatCurrency(expense.value)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono">{formatCurrency(expense.value)}</span>
+                          {onEditExpense && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onEditExpense(expense)}
+                              className="h-8 w-8"
+                              title="Editar"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     ))
                   )}

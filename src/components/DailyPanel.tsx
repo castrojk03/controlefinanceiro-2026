@@ -1,8 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { DailyBalance, Expense, Area, Category } from '@/types/finance';
-import { format, isSameDay } from 'date-fns';
+import { DailyBalance, Expense, Income, Area, Category } from '@/types/finance';
+import { format, isSameDay, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Pencil } from 'lucide-react';
 
@@ -11,9 +11,11 @@ interface DailyPanelProps {
   selectedMonth: number;
   selectedYear: number;
   expenses?: Expense[];
+  incomes?: Income[];
   areas?: Area[];
   categories?: Category[];
   onEditExpense?: (expense: Expense) => void;
+  onEditIncome?: (income: Income) => void;
 }
 
 const MONTHS = [
@@ -36,23 +38,43 @@ export function DailyPanel({
   selectedMonth, 
   selectedYear,
   expenses = [],
+  incomes = [],
   areas = [],
   categories = [],
-  onEditExpense 
+  onEditExpense,
+  onEditIncome
 }: DailyPanelProps) {
   const totalIncome = dailyBalances.reduce((acc, d) => acc + d.income, 0);
   const totalExpense = dailyBalances.reduce((acc, d) => acc + d.expense, 0);
   const finalBalance = dailyBalances[dailyBalances.length - 1]?.balance ?? 0;
 
+  const today = new Date();
+
   const getExpensesForDay = (date: Date) => {
     return expenses.filter(exp => {
       const expDate = exp.paymentDate ? new Date(exp.paymentDate) : new Date(exp.date);
-      return isSameDay(expDate, date) && exp.status === 'paid';
+      return isSameDay(expDate, date);
+    });
+  };
+
+  const getIncomesForDay = (date: Date) => {
+    return incomes.filter(inc => {
+      const incDate = new Date(inc.date);
+      return isSameDay(incDate, date);
     });
   };
 
   const getAreaName = (areaId: string) => areas.find(a => a.id === areaId)?.name || '';
   const getCategoryName = (categoryId: string) => categories.find(c => c.id === categoryId)?.name || '';
+
+  const getExpenseOpacity = (expense: Expense) => {
+    const expenseDate = new Date(expense.paymentDate || expense.date);
+    const isOverdue = expense.status === 'scheduled' && (isBefore(expenseDate, today) || isSameDay(expenseDate, today));
+    
+    if (expense.status === 'paid') return 'opacity-100';
+    if (isOverdue) return 'opacity-100';
+    return 'opacity-50';
+  };
 
   return (
     <Card className="border-2 shadow-sm">
@@ -73,13 +95,14 @@ export function DailyPanel({
                 <TableHead className="w-[150px] border-r text-right font-bold text-chart-2">Entrada</TableHead>
                 <TableHead className="w-[150px] border-r text-right font-bold text-destructive">Saída</TableHead>
                 <TableHead className="w-[150px] border-r text-right font-bold">Saldo</TableHead>
-                {onEditExpense && <TableHead className="w-[200px] font-bold">Despesas do Dia</TableHead>}
+                {(onEditExpense || onEditIncome) && <TableHead className="w-[250px] font-bold">Transações do Dia</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {dailyBalances.map((day, index) => {
                 const hasActivity = day.income > 0 || day.expense > 0;
                 const dayExpenses = getExpensesForDay(day.date);
+                const dayIncomes = getIncomesForDay(day.date);
                 
                 return (
                   <TableRow 
@@ -103,15 +126,30 @@ export function DailyPanel({
                     <TableCell className={`border-r text-right font-mono font-medium ${day.balance >= 0 ? 'text-chart-2' : 'text-destructive'}`}>
                       {formatCurrency(day.balance)}
                     </TableCell>
-                    {onEditExpense && (
+                    {(onEditExpense || onEditIncome) && (
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {dayExpenses.slice(0, 3).map(exp => (
+                          {/* Incomes */}
+                          {onEditIncome && dayIncomes.slice(0, 2).map(inc => (
+                            <Button
+                              key={inc.id}
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs gap-1 text-chart-2 hover:text-chart-2"
+                              onClick={() => onEditIncome(inc)}
+                              title={`${inc.description} - ${inc.origin}`}
+                            >
+                              <Pencil className="h-3 w-3" />
+                              {formatCurrency(inc.value)}
+                            </Button>
+                          ))}
+                          {/* Expenses */}
+                          {onEditExpense && dayExpenses.slice(0, 2).map(exp => (
                             <Button
                               key={exp.id}
                               variant="ghost"
                               size="sm"
-                              className="h-6 px-2 text-xs gap-1 text-destructive hover:text-destructive"
+                              className={`h-6 px-2 text-xs gap-1 text-destructive hover:text-destructive ${getExpenseOpacity(exp)}`}
                               onClick={() => onEditExpense(exp)}
                               title={`${exp.description} - ${getAreaName(exp.areaId)} / ${getCategoryName(exp.categoryId)}`}
                             >
@@ -119,9 +157,9 @@ export function DailyPanel({
                               {formatCurrency(exp.value)}
                             </Button>
                           ))}
-                          {dayExpenses.length > 3 && (
+                          {(dayExpenses.length + dayIncomes.length) > 4 && (
                             <span className="text-xs text-muted-foreground self-center">
-                              +{dayExpenses.length - 3}
+                              +{(dayExpenses.length + dayIncomes.length) - 4}
                             </span>
                           )}
                         </div>
@@ -143,7 +181,7 @@ export function DailyPanel({
                 <TableCell className={`border-r text-right font-mono ${finalBalance >= 0 ? 'text-chart-2' : 'text-destructive'}`}>
                   {formatCurrency(finalBalance)}
                 </TableCell>
-                {onEditExpense && <TableCell></TableCell>}
+                {(onEditExpense || onEditIncome) && <TableCell></TableCell>}
               </TableRow>
             </TableBody>
           </Table>
