@@ -1113,6 +1113,67 @@ export function useFinanceData() {
     }
   }, []);
 
+  const updateExpenseDate = useCallback(async (expenseId: string, newDate: Date) => {
+    try {
+      // Handle recurring expense instances
+      const baseId = expenseId.includes('_') ? expenseId.split('_')[0] : expenseId;
+      
+      const { error } = await supabase
+        .from('expenses')
+        .update({
+          date: newDate.toISOString().split('T')[0],
+          payment_date: newDate.toISOString().split('T')[0],
+        })
+        .eq('id', baseId);
+
+      if (error) throw error;
+
+      setExpenses(prev => prev.map(e => {
+        if (e.id === baseId) {
+          return {
+            ...e,
+            date: newDate,
+            paymentDate: newDate,
+          };
+        }
+        return e;
+      }));
+
+      toast.success('Data da despesa atualizada!');
+    } catch (error) {
+      console.error('Error updating expense date:', error);
+      toast.error('Erro ao atualizar data');
+    }
+  }, []);
+
+  const updateIncomeDate = useCallback(async (incomeId: string, newDate: Date) => {
+    try {
+      const { error } = await supabase
+        .from('incomes')
+        .update({
+          date: newDate.toISOString().split('T')[0],
+        })
+        .eq('id', incomeId);
+
+      if (error) throw error;
+
+      setIncomes(prev => prev.map(i => {
+        if (i.id === incomeId) {
+          return {
+            ...i,
+            date: newDate,
+          };
+        }
+        return i;
+      }));
+
+      toast.success('Data da receita atualizada!');
+    } catch (error) {
+      console.error('Error updating income date:', error);
+      toast.error('Erro ao atualizar data');
+    }
+  }, []);
+
   return {
     accounts,
     cards,
@@ -1142,8 +1203,10 @@ export function useFinanceData() {
     updateExpense,
     deleteExpense,
     updateExpenseStatus,
+    updateExpenseDate,
     updateIncome,
     deleteIncome,
+    updateIncomeDate,
     addAccount,
     addCard,
     addArea,

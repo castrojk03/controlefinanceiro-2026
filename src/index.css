@@ -162,3 +162,148 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* React Big Calendar Custom Styles */
+.calendar-container .rbc-calendar {
+  font-family: var(--font-sans);
+}
+
+.calendar-container .rbc-toolbar {
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.calendar-container .rbc-toolbar button {
+  @apply border-2 border-border bg-background text-foreground px-3 py-1.5 text-sm font-medium transition-colors;
+  border-radius: 0;
+}
+
+.calendar-container .rbc-toolbar button:hover {
+  @apply bg-secondary text-secondary-foreground;
+}
+
+.calendar-container .rbc-toolbar button.rbc-active {
+  @apply bg-primary text-primary-foreground border-primary;
+}
+
+.calendar-container .rbc-header {
+  @apply py-2 text-sm font-semibold text-muted-foreground border-b-2 border-border;
+}
+
+.calendar-container .rbc-month-view {
+  @apply border-2 border-border;
+}
+
+.calendar-container .rbc-day-bg {
+  @apply border-border;
+}
+
+.calendar-container .rbc-off-range-bg {
+  @apply bg-muted/20;
+}
+
+.calendar-container .rbc-today {
+  @apply bg-accent/30;
+}
+
+.calendar-container .rbc-event {
+  @apply border-none text-xs;
+  border-radius: 2px;
+}
+
+.calendar-container .rbc-event:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--ring));
+}
+
+.calendar-container .rbc-show-more {
+  @apply text-primary font-medium text-xs;
+}
+
+.calendar-container .rbc-month-row {
+  @apply border-b border-border;
+}
+
+.calendar-container .rbc-date-cell {
+  @apply text-right pr-2 pt-1 text-sm;
+}
+
+.calendar-container .rbc-date-cell.rbc-now {
+  @apply text-primary font-bold;
+}
+
+.calendar-container .rbc-time-view {
+  @apply border-2 border-border;
+}
+
+.calendar-container .rbc-time-header {
+  @apply border-b-2 border-border;
+}
+
+.calendar-container .rbc-time-content {
+  @apply border-t-0;
+}
+
+.calendar-container .rbc-timeslot-group {
+  @apply border-b border-border;
+}
+
+.calendar-container .rbc-time-slot {
+  @apply text-xs text-muted-foreground;
+}
+
+.calendar-container .rbc-day-slot .rbc-time-slot {
+  @apply border-t border-border;
+}
+
+.calendar-container .rbc-agenda-view {
+  @apply border-2 border-border;
+}
+
+.calendar-container .rbc-agenda-table {
+  @apply w-full;
+}
+
+.calendar-container .rbc-agenda-table thead {
+  @apply bg-secondary/30;
+}
+
+.calendar-container .rbc-agenda-table th,
+.calendar-container .rbc-agenda-table td {
+  @apply border-b border-border px-3 py-2 text-sm;
+}
+
+.calendar-container .rbc-agenda-date-cell,
+.calendar-container .rbc-agenda-time-cell {
+  @apply text-muted-foreground;
+}
+
+/* Drag and Drop styles */
+.calendar-container .rbc-addons-dnd-row-body {
+  position: relative;
+}
+
+.calendar-container .rbc-addons-dnd-drag-row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.calendar-container .rbc-addons-dnd-over {
+  @apply bg-accent/50;
+}
+
+.calendar-container .rbc-addons-dnd-dragged-event {
+  opacity: 0.5;
+}
+
+/* Dark mode adjustments */
+.dark .calendar-container .rbc-off-range-bg {
+  @apply bg-muted/10;
+}
+
+.dark .calendar-container .rbc-today {
+  @apply bg-accent/20;
+}
