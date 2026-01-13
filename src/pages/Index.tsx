@@ -8,11 +8,13 @@ import { InvoicesPanel } from '@/components/InvoicesPanel';
 import { CalendarPanel } from '@/components/CalendarPanel';
 import { ProfilePanel } from '@/components/ProfilePanel';
 import { ExpenseListPanel } from '@/components/ExpenseListPanel';
+import { BudgetPanel } from '@/components/BudgetPanel';
 import { AddTransactionDialog } from '@/components/AddTransactionDialog';
 import { EditExpenseDialog } from '@/components/EditExpenseDialog';
 import { EditIncomeDialog } from '@/components/EditIncomeDialog';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { useFinanceData } from '@/hooks/useFinanceData';
+import { useBudgets } from '@/hooks/useBudgets';
 import { useAuth } from '@/hooks/useAuth';
 import { useInactivityLogout } from '@/hooks/useInactivityLogout';
 import { useSessionMonitor } from '@/hooks/useSessionMonitor';
@@ -71,6 +73,42 @@ const Index = () => {
     payInvoice,
     loading,
   } = useFinanceData();
+
+  // Budget state - separate from selected month/year for flexibility
+  const [budgetMonth, setBudgetMonth] = useState<number>(new Date().getMonth());
+  const [budgetYear, setBudgetYear] = useState<number>(new Date().getFullYear());
+
+  // Budget hook
+  const {
+    budgetsWithSpent,
+    summary: budgetSummary,
+    saveBudget,
+    deleteBudget,
+    copyFromPreviousMonth,
+    getBudgetForCategory,
+    loading: budgetsLoading,
+  } = useBudgets({
+    month: selectedMonth,
+    year: selectedYear,
+    expenses: allExpenses,
+    categories,
+    areas,
+  });
+
+  // Budget hook for settings (uses budget-specific month/year)
+  const {
+    saveBudget: saveBudgetSettings,
+    deleteBudget: deleteBudgetSettings,
+    copyFromPreviousMonth: copyBudgetsFromPreviousMonth,
+    getBudgetForCategory: getBudgetForCategorySettings,
+  } = useBudgets({
+    month: budgetMonth,
+    year: budgetYear,
+    expenses: allExpenses,
+    categories,
+    areas,
+  });
+
   const [activeTab, setActiveTab] = useState('expenses');
   const [showProfile, setShowProfile] = useState(false);
   
@@ -117,7 +155,29 @@ const Index = () => {
           
           <div className="flex items-center gap-2">
             <AddTransactionDialog accounts={accounts} cards={cards} areas={areas} categories={categories} onAddIncome={addIncome} onAddExpense={addExpense} />
-            <SettingsDialog accounts={accounts} cards={cards} areas={areas} categories={categories} onAddAccount={addAccount} onAddCard={addCard} onAddArea={addArea} onAddCategory={addCategory} onClearAllData={clearAllData} onDeleteAccount={deleteAccount} onDeleteCard={deleteCard} onDeleteArea={deleteArea} onDeleteCategory={deleteCategory} />
+            <SettingsDialog 
+              accounts={accounts} 
+              cards={cards} 
+              areas={areas} 
+              categories={categories} 
+              onAddAccount={addAccount} 
+              onAddCard={addCard} 
+              onAddArea={addArea} 
+              onAddCategory={addCategory} 
+              onClearAllData={clearAllData} 
+              onDeleteAccount={deleteAccount} 
+              onDeleteCard={deleteCard} 
+              onDeleteArea={deleteArea} 
+              onDeleteCategory={deleteCategory}
+              getBudgetForCategory={getBudgetForCategorySettings}
+              onSaveBudget={saveBudgetSettings}
+              onDeleteBudget={deleteBudgetSettings}
+              onCopyBudgetsFromPreviousMonth={copyBudgetsFromPreviousMonth}
+              budgetMonth={budgetMonth}
+              budgetYear={budgetYear}
+              onBudgetMonthChange={setBudgetMonth}
+              onBudgetYearChange={setBudgetYear}
+            />
             <Button variant={showProfile ? "default" : "outline"} size="icon" onClick={() => setShowProfile(!showProfile)} title="Perfil">
               <User className="h-4 w-4" />
             </Button>
@@ -136,6 +196,16 @@ const Index = () => {
           <>
             {/* Visão Geral - Always visible */}
             <OverviewPanel totalIncome={totalIncome} totalExpense={totalExpense} balance={balance} previousTotalIncome={previousTotalIncome} previousTotalExpense={previousTotalExpense} previousBalance={previousBalance} selectedMonth={selectedMonth} selectedYear={selectedYear} onMonthChange={setSelectedMonth} onYearChange={setSelectedYear} cards={cards} accounts={accounts} getCardUsedLimit={getCardUsedLimit} />
+
+            {/* Budget Panel */}
+            {budgetsWithSpent.length > 0 && (
+              <BudgetPanel 
+                budgets={budgetsWithSpent} 
+                summary={budgetSummary} 
+                selectedMonth={selectedMonth} 
+                selectedYear={selectedYear} 
+              />
+            )}
 
             {/* Panel Selection Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
