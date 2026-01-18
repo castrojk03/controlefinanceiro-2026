@@ -9,6 +9,7 @@ import { CalendarPanel } from '@/components/CalendarPanel';
 import { ProfilePanel } from '@/components/ProfilePanel';
 import { ExpenseListPanel } from '@/components/ExpenseListPanel';
 import { BudgetPanel } from '@/components/BudgetPanel';
+import { BudgetsSettingsTab } from '@/components/BudgetsSettingsTab';
 import { AddTransactionDialog } from '@/components/AddTransactionDialog';
 import { EditExpenseDialog } from '@/components/EditExpenseDialog';
 import { EditIncomeDialog } from '@/components/EditIncomeDialog';
@@ -19,7 +20,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useInactivityLogout } from '@/hooks/useInactivityLogout';
 import { useSessionMonitor } from '@/hooks/useSessionMonitor';
 import { Button } from '@/components/ui/button';
-import { Table, Calendar, BarChart3, Wallet, Receipt, CalendarDays, LogOut, User, List } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, Calendar, BarChart3, Wallet, Receipt, CalendarDays, LogOut, User, List, PiggyBank } from 'lucide-react';
 import { Expense, Income } from '@/types/finance';
 
 const Index = () => {
@@ -169,14 +171,6 @@ const Index = () => {
               onDeleteCard={deleteCard} 
               onDeleteArea={deleteArea} 
               onDeleteCategory={deleteCategory}
-              getBudgetForCategory={getBudgetForCategorySettings}
-              onSaveBudget={saveBudgetSettings}
-              onDeleteBudget={deleteBudgetSettings}
-              onCopyBudgetsFromPreviousMonth={copyBudgetsFromPreviousMonth}
-              budgetMonth={budgetMonth}
-              budgetYear={budgetYear}
-              onBudgetMonthChange={setBudgetMonth}
-              onBudgetYearChange={setBudgetYear}
             />
             <Button variant={showProfile ? "default" : "outline"} size="icon" onClick={() => setShowProfile(!showProfile)} title="Perfil">
               <User className="h-4 w-4" />
@@ -209,10 +203,14 @@ const Index = () => {
 
             {/* Panel Selection Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-6 border-2 lg:w-auto lg:inline-grid">
+              <TabsList className="grid w-full grid-cols-7 border-2 lg:w-auto lg:inline-grid">
                 <TabsTrigger value="expenses" className="gap-2">
                   <List className="h-4 w-4" />
                   <span className="hidden sm:inline">Lista de Despesas</span>
+                </TabsTrigger>
+                <TabsTrigger value="budgets" className="gap-2">
+                  <PiggyBank className="h-4 w-4" />
+                  <span className="hidden sm:inline">Orçamentos</span>
                 </TabsTrigger>
                 <TabsTrigger value="general" className="gap-2">
                   <Table className="h-4 w-4" />
@@ -247,8 +245,47 @@ const Index = () => {
                 />
               </TabsContent>
 
+              <TabsContent value="budgets">
+                <Card className="border-2 shadow-sm">
+                  <CardHeader className="border-b-2 pb-4">
+                    <CardTitle className="flex items-center gap-2">
+                      <PiggyBank className="h-5 w-5" />
+                      <span className="text-xl font-bold">Orçamentos</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <BudgetsSettingsTab
+                      areas={areas}
+                      categories={categories}
+                      getBudgetForCategory={getBudgetForCategorySettings}
+                      onSaveBudget={saveBudgetSettings}
+                      onDeleteBudget={deleteBudgetSettings}
+                      onCopyFromPreviousMonth={copyBudgetsFromPreviousMonth}
+                      selectedMonth={budgetMonth}
+                      selectedYear={budgetYear}
+                      onMonthChange={setBudgetMonth}
+                      onYearChange={setBudgetYear}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
               <TabsContent value="general">
-                <GeneralPanel incomesByOrigin={incomesByOrigin} expensesByArea={expensesByArea} selectedYear={selectedYear} />
+                <GeneralPanel 
+                  incomesByOrigin={incomesByOrigin} 
+                  expensesByArea={expensesByArea} 
+                  selectedYear={selectedYear}
+                  allIncomes={allIncomes}
+                  allExpenses={allExpenses}
+                  areas={areas}
+                  categories={categories}
+                  accounts={accounts}
+                  cards={cards}
+                  onAddIncome={addIncome}
+                  onAddExpense={addExpense}
+                  onEditIncome={handleEditIncome}
+                  onEditExpense={handleEditExpense}
+                />
               </TabsContent>
 
               <TabsContent value="daily">

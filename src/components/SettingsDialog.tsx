@@ -7,9 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Settings, Building2, CreditCard, Tags, FolderOpen, Plus, Trash2, Wallet } from 'lucide-react';
+import { Settings, Building2, CreditCard, Tags, FolderOpen, Plus, Trash2 } from 'lucide-react';
 import { Account, Card as CardType, Area, Category, PaymentMethod } from '@/types/finance';
-import { BudgetsSettingsTab } from '@/components/BudgetsSettingsTab';
 import { toast } from 'sonner';
 
 type DeleteItem = 
@@ -33,15 +32,6 @@ interface SettingsDialogProps {
   onDeleteCard: (id: string) => void;
   onDeleteArea: (id: string) => void;
   onDeleteCategory: (id: string) => void;
-  // Budget props
-  getBudgetForCategory: (categoryId: string) => number | null;
-  onSaveBudget: (categoryId: string, amount: number) => void;
-  onDeleteBudget: (categoryId: string) => void;
-  onCopyBudgetsFromPreviousMonth: () => void;
-  budgetMonth: number;
-  budgetYear: number;
-  onBudgetMonthChange: (month: number) => void;
-  onBudgetYearChange: (year: number) => void;
 }
 
 const COLORS = [
@@ -68,14 +58,6 @@ export function SettingsDialog({
   onDeleteCard,
   onDeleteArea,
   onDeleteCategory,
-  getBudgetForCategory,
-  onSaveBudget,
-  onDeleteBudget,
-  onCopyBudgetsFromPreviousMonth,
-  budgetMonth,
-  budgetYear,
-  onBudgetMonthChange,
-  onBudgetYearChange,
 }: SettingsDialogProps) {
   const [open, setOpen] = useState(false);
   const [deleteItem, setDeleteItem] = useState<DeleteItem>(null);
@@ -226,7 +208,7 @@ export function SettingsDialog({
         </DialogHeader>
 
         <Tabs defaultValue="accounts">
-          <TabsList className="grid w-full grid-cols-6 border-2">
+          <TabsList className="grid w-full grid-cols-5 border-2">
             <TabsTrigger value="accounts" className="gap-1 text-xs">
               <Building2 className="h-3 w-3" />
               <span className="hidden sm:inline">Contas</span>
@@ -242,10 +224,6 @@ export function SettingsDialog({
             <TabsTrigger value="categories" className="gap-1 text-xs">
               <Tags className="h-3 w-3" />
               <span className="hidden sm:inline">Categorias</span>
-            </TabsTrigger>
-            <TabsTrigger value="budgets" className="gap-1 text-xs">
-              <Wallet className="h-3 w-3" />
-              <span className="hidden sm:inline">Orçamentos</span>
             </TabsTrigger>
             <TabsTrigger value="danger" className="gap-1 text-xs text-destructive">
               <Trash2 className="h-3 w-3" />
@@ -595,22 +573,6 @@ export function SettingsDialog({
                 </div>
               </ScrollArea>
             </div>
-          </TabsContent>
-
-          {/* Budgets Tab */}
-          <TabsContent value="budgets" className="mt-4">
-            <BudgetsSettingsTab
-              areas={areas}
-              categories={categories}
-              getBudgetForCategory={getBudgetForCategory}
-              onSaveBudget={onSaveBudget}
-              onDeleteBudget={onDeleteBudget}
-              onCopyFromPreviousMonth={onCopyBudgetsFromPreviousMonth}
-              selectedMonth={budgetMonth}
-              selectedYear={budgetYear}
-              onMonthChange={onBudgetMonthChange}
-              onYearChange={onBudgetYearChange}
-            />
           </TabsContent>
 
           {/* Danger Zone Tab */}
