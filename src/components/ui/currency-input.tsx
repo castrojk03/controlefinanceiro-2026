@@ -45,8 +45,11 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       let inputValue = e.target.value;
       
-      // Remove all non-numeric characters except comma
-      inputValue = inputValue.replace(/[^\d,]/g, '');
+      // Remove all non-numeric characters except comma and dot
+      inputValue = inputValue.replace(/[^\d,\.]/g, '');
+      
+      // Convert dot to comma for Brazilian format (accept both separators)
+      inputValue = inputValue.replace(/\./g, ',');
       
       // Ensure only one comma
       const commaCount = (inputValue.match(/,/g) || []).length;
@@ -62,8 +65,8 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
         inputValue = parts.join(',');
       }
       
-      // Parse and validate
-      const numericValue = parseToNumber(inputValue.replace('.', '').replace(',', '.'));
+      // Parse and validate - use parseToNumber which handles Brazilian format
+      const numericValue = parseToNumber(inputValue);
       
       // Reject negative values
       if (numericValue < 0) return;
@@ -78,7 +81,7 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
     // Format on blur
     const handleBlur = () => {
       setIsFocused(false);
-      const numericValue = parseToNumber(displayValue.replace('.', '').replace(',', '.'));
+      const numericValue = parseToNumber(displayValue);
       if (numericValue > 0) {
         const formatted = formatToCurrency(numericValue);
         setDisplayValue(formatted);
@@ -97,7 +100,7 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
     // Sync with external value changes
     React.useEffect(() => {
       if (!isFocused) {
-        const numericValue = parseToNumber(value.replace('.', '').replace(',', '.'));
+        const numericValue = parseToNumber(value);
         if (numericValue > 0) {
           setDisplayValue(formatToCurrency(numericValue));
         } else {
