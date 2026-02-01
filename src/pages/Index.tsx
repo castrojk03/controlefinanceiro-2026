@@ -99,6 +99,8 @@ const Index = () => {
 
   // Budget hook for settings (uses budget-specific month/year)
   const {
+    budgetsWithSpent: budgetsWithSpentSettings,
+    summary: budgetSummarySettings,
     saveBudget: saveBudgetSettings,
     deleteBudget: deleteBudgetSettings,
     copyFromPreviousMonth: copyBudgetsFromPreviousMonth,
@@ -265,6 +267,8 @@ const Index = () => {
                       selectedYear={budgetYear}
                       onMonthChange={setBudgetMonth}
                       onYearChange={setBudgetYear}
+                      budgetsWithSpent={budgetsWithSpentSettings}
+                      summary={budgetSummarySettings}
                     />
                   </CardContent>
                 </Card>

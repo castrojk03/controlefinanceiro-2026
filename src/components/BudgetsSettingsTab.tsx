@@ -4,8 +4,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Copy, Save, Trash2 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Copy, Save, Trash2, AlertTriangle, CheckCircle, Wallet, TrendingUp } from 'lucide-react';
 import { Area, Category } from '@/types/finance';
+import { BudgetWithSpent } from '@/hooks/useBudgets';
 import { toast } from 'sonner';
 
 interface BudgetsSettingsTabProps {
@@ -19,6 +21,15 @@ interface BudgetsSettingsTabProps {
   selectedYear: number;
   onMonthChange: (month: number) => void;
   onYearChange: (year: number) => void;
+  budgetsWithSpent: BudgetWithSpent[];
+  summary: {
+    totalBudgeted: number;
+    totalSpent: number;
+    percentUsed: number;
+    overBudgetCount: number;
+    withinBudgetCount: number;
+    totalCategories: number;
+  };
 }
 
 const MONTHS = [
@@ -33,6 +44,19 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
+const getProgressColor = (percent: number): string => {
+  if (percent >= 100) return 'bg-destructive';
+  if (percent >= 91) return 'bg-chart-3';
+  if (percent >= 71) return 'bg-chart-4';
+  return 'bg-chart-2';
+};
+
+const getStatusIcon = (percent: number) => {
+  if (percent >= 100) return <AlertTriangle className="h-4 w-4 text-destructive" />;
+  if (percent >= 70) return <AlertTriangle className="h-4 w-4 text-chart-4" />;
+  return <CheckCircle className="h-4 w-4 text-chart-2" />;
+};
+
 export function BudgetsSettingsTab({
   areas,
   categories,
@@ -44,9 +68,20 @@ export function BudgetsSettingsTab({
   selectedYear,
   onMonthChange,
   onYearChange,
+  budgetsWithSpent,
+  summary,
 }: BudgetsSettingsTabProps) {
   const [editingValues, setEditingValues] = useState<Record<string, string>>({});
   const years = [2024, 2025, 2026, 2027];
+
+  // Create a map of spent amounts by category for quick lookup
+  const spentByCategory = useMemo(() => {
+    const map: Record<string, { spent: number; percent: number }> = {};
+    budgetsWithSpent.forEach(b => {
+      map[b.categoryId] = { spent: b.spentAmount, percent: b.percentUsed };
+    });
+    return map;
+  }, [budgetsWithSpent]);
 
   const categoriesByArea = useMemo(() => {
     const grouped: Record<string, { area: Area; categories: Category[] }> = {};
@@ -143,6 +178,53 @@ export function BudgetsSettingsTab({
         </Button>
       </div>
 
+      {/* Summary Card */}
+      {summary.totalCategories > 0 && (
+        <Card className="border-2 bg-muted/30">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Wallet className="h-5 w-5" />
+              <h3 className="font-semibold">Resumo - {MONTHS[selectedMonth]} {selectedYear}</h3>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Orçado</p>
+                <p className="text-lg font-bold">{formatCurrency(summary.totalBudgeted)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Gasto</p>
+                <p className={`text-lg font-bold ${summary.percentUsed >= 100 ? 'text-destructive' : ''}`}>
+                  {formatCurrency(summary.totalSpent)} ({summary.percentUsed.toFixed(0)}%)
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Saldo</p>
+                <p className={`text-lg font-bold ${summary.totalBudgeted - summary.totalSpent >= 0 ? 'text-chart-2' : 'text-destructive'}`}>
+                  {formatCurrency(summary.totalBudgeted - summary.totalSpent)}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {summary.overBudgetCount > 0 ? (
+                  <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      {summary.overBudgetCount} excedido(s)
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-md bg-chart-2/10 px-3 py-2 text-chart-2">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      Tudo em dia!
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Categories by Area */}
       <ScrollArea className="h-[350px]">
         <div className="space-y-4 pr-4">
@@ -160,39 +242,38 @@ export function BudgetsSettingsTab({
                 {areaCategories.map(category => {
                   const currentBudget = getBudgetForCategory(category.id);
                   const hasEdits = editingValues[category.id] !== undefined;
+                  const spentInfo = spentByCategory[category.id];
+                  const hasBudgetDefined = hasBudget(category.id);
                   
                   return (
-                    <div key={category.id} className="flex items-center gap-3 pl-6">
-                      <span className="text-muted-foreground">└─</span>
-                      <span className="min-w-[120px] font-medium">{category.name}</span>
-                      
-                      <div className="flex flex-1 items-center gap-2">
-                        <span className="text-sm text-muted-foreground">R$</span>
-                        <Input
-                          type="text"
-                          placeholder="0,00"
-                          value={getDisplayValue(category.id)}
-                          onChange={(e) => handleValueChange(category.id, e.target.value)}
-                          className="w-[120px] border-2"
-                        />
+                    <div key={category.id} className="flex flex-col gap-2 pl-6 pb-3 border-b border-border/50 last:border-b-0">
+                      <div className="flex items-center gap-3">
+                        <span className="text-muted-foreground">└─</span>
+                        <span className="min-w-[140px] font-medium">{category.name}</span>
                         
-                        {(hasEdits || !hasBudget(category.id)) && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleSave(category.id)}
-                            className="gap-1 border-2"
-                            disabled={!getDisplayValue(category.id)}
-                          >
-                            <Save className="h-3 w-3" />
-                            Salvar
-                          </Button>
-                        )}
-                        
-                        {hasBudget(category.id) && !hasEdits && (
-                          <>
-                            <span className="text-sm text-chart-2">
-                              {formatCurrency(currentBudget!)}
-                            </span>
+                        <div className="flex flex-1 items-center gap-2">
+                          <span className="text-sm text-muted-foreground">R$</span>
+                          <Input
+                            type="text"
+                            placeholder="0,00"
+                            value={getDisplayValue(category.id)}
+                            onChange={(e) => handleValueChange(category.id, e.target.value)}
+                            className="w-[120px] border-2"
+                          />
+                          
+                          {(hasEdits || !hasBudgetDefined) && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleSave(category.id)}
+                              className="gap-1 border-2"
+                              disabled={!getDisplayValue(category.id)}
+                            >
+                              <Save className="h-3 w-3" />
+                              Salvar
+                            </Button>
+                          )}
+                          
+                          {hasBudgetDefined && !hasEdits && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -201,15 +282,65 @@ export function BudgetsSettingsTab({
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
-                          </>
-                        )}
-                        
-                        {!hasBudget(category.id) && !hasEdits && (
-                          <span className="text-sm text-muted-foreground italic">
-                            Não definido
-                          </span>
-                        )}
+                          )}
+                          
+                          {!hasBudgetDefined && !hasEdits && (
+                            <span className="text-sm text-muted-foreground italic">
+                              Não definido
+                            </span>
+                          )}
+                        </div>
                       </div>
+                      
+                      {/* Progress bar and spending info - only show if budget is defined */}
+                      {hasBudgetDefined && spentInfo && (
+                        <div className="ml-8 space-y-1">
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                              {getStatusIcon(spentInfo.percent)}
+                              <span className="text-muted-foreground">
+                                Gasto: <span className={`font-medium ${spentInfo.percent >= 100 ? 'text-destructive' : ''}`}>
+                                  {formatCurrency(spentInfo.spent)}
+                                </span>
+                                <span className="text-muted-foreground ml-1">
+                                  ({spentInfo.percent.toFixed(0)}%)
+                                </span>
+                              </span>
+                            </div>
+                            <span className={`font-medium ${spentInfo.percent >= 100 ? 'text-destructive' : 'text-chart-2'}`}>
+                              {spentInfo.percent >= 100 ? 'Excedeu: ' : 'Restante: '}
+                              {formatCurrency(Math.abs(currentBudget! - spentInfo.spent))}
+                            </span>
+                          </div>
+                          <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary">
+                            <div 
+                              className={`h-full transition-all ${getProgressColor(spentInfo.percent)}`}
+                              style={{ width: `${Math.min(spentInfo.percent, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Show zero spending if budget defined but no spending yet */}
+                      {hasBudgetDefined && !spentInfo && (
+                        <div className="ml-8 space-y-1">
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="h-4 w-4 text-chart-2" />
+                              <span className="text-muted-foreground">
+                                Gasto: <span className="font-medium">R$ 0,00</span>
+                                <span className="text-muted-foreground ml-1">(0%)</span>
+                              </span>
+                            </div>
+                            <span className="font-medium text-chart-2">
+                              Restante: {formatCurrency(currentBudget!)}
+                            </span>
+                          </div>
+                          <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary">
+                            <div className="h-full w-0 bg-chart-2" />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
