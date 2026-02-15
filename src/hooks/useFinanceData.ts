@@ -99,7 +99,7 @@ export function useFinanceData() {
           .from('accounts')
           .select('*')
           .order('created_at');
-        
+
         if (accountsData) {
           setAccounts(accountsData.map(a => ({
             id: a.id,
@@ -114,7 +114,7 @@ export function useFinanceData() {
           .from('cards')
           .select('*')
           .order('created_at');
-        
+
         if (cardsData) {
           setCards(cardsData.map(c => ({
             id: c.id,
@@ -134,7 +134,7 @@ export function useFinanceData() {
           .from('areas')
           .select('*')
           .order('created_at');
-        
+
         if (areasData && areasData.length > 0) {
           setAreas(areasData.map(a => ({
             id: a.id,
@@ -151,7 +151,7 @@ export function useFinanceData() {
           .from('categories')
           .select('*')
           .order('created_at');
-        
+
         if (categoriesData && categoriesData.length > 0) {
           setCategories(categoriesData.map(c => ({
             id: c.id,
@@ -165,7 +165,7 @@ export function useFinanceData() {
           .from('incomes')
           .select('*')
           .order('date', { ascending: false });
-        
+
         if (incomesData) {
           setIncomes(incomesData.map(i => ({
             id: i.id,
@@ -183,7 +183,7 @@ export function useFinanceData() {
           .from('expenses')
           .select('*')
           .order('date', { ascending: false });
-        
+
         if (expensesData) {
           setExpenses(expensesData.map(e => ({
             id: e.id,
@@ -215,7 +215,7 @@ export function useFinanceData() {
           .from('invoices')
           .select('*')
           .order('year', { ascending: false });
-        
+
         if (invoicesData) {
           setInvoices(invoicesData.map(i => ({
             id: i.id,
@@ -381,10 +381,10 @@ export function useFinanceData() {
 
     for (let day = 1; day <= daysInMonth; day++) {
       const dayIncomes = filteredIncomes.filter(i => new Date(i.date).getDate() === day);
-      const dayExpenses = filteredExpenses.filter(e => 
+      const dayExpenses = filteredExpenses.filter(e =>
         new Date(e.date).getDate() === day && e.status === 'paid'
       );
-      
+
       const dayIncome = dayIncomes.reduce((acc, i) => acc + i.value, 0);
       const dayExpense = dayExpenses.reduce((acc, e) => acc + e.value, 0);
       runningBalance += dayIncome - dayExpense;
@@ -402,11 +402,11 @@ export function useFinanceData() {
 
   const incomesByOrigin = useMemo(() => {
     const grouped: Record<string, number[]> = {};
-    
+
     incomes.forEach(income => {
       const month = new Date(income.date).getMonth();
       const year = new Date(income.date).getFullYear();
-      
+
       if (year === selectedYear) {
         if (!grouped[income.origin]) {
           grouped[income.origin] = Array(12).fill(0);
@@ -420,15 +420,15 @@ export function useFinanceData() {
 
   const expensesByArea = useMemo(() => {
     const grouped: Record<string, { total: number[]; categories: Record<string, number[]> }> = {};
-    
+
     expandedExpenses.filter(e => e.status === 'paid').forEach(expense => {
       const month = new Date(expense.date).getMonth();
       const year = new Date(expense.date).getFullYear();
-      
+
       if (year === selectedYear) {
         const area = areas.find(a => a.id === expense.areaId);
         const category = categories.find(c => c.id === expense.categoryId);
-        
+
         if (area && category) {
           if (!grouped[area.name]) {
             grouped[area.name] = { total: Array(12).fill(0), categories: {} };
@@ -436,7 +436,7 @@ export function useFinanceData() {
           if (!grouped[area.name].categories[category.name]) {
             grouped[area.name].categories[category.name] = Array(12).fill(0);
           }
-          
+
           grouped[area.name].total[month] += expense.value;
           grouped[area.name].categories[category.name][month] += expense.value;
         }
@@ -458,7 +458,7 @@ export function useFinanceData() {
 
     return expandedExpenses.filter(expense => {
       if (expense.cardId !== cardId) return false;
-      
+
       const expenseDate = new Date(expense.date);
       const expenseDay = expenseDate.getDate();
       const expenseMonth = expenseDate.getMonth();
@@ -478,7 +478,7 @@ export function useFinanceData() {
     const card = cards.find(c => c.id === cardId);
     if (!card) return 'closed';
 
-    const existingInvoice = invoices.find(inv => 
+    const existingInvoice = invoices.find(inv =>
       inv.cardId === cardId && inv.month === month && inv.year === year
     );
     if (existingInvoice?.status === 'paid') return 'paid';
@@ -516,9 +516,9 @@ export function useFinanceData() {
           }
 
           const key = `${card.id}-${invoiceMonth}-${invoiceYear}`;
-          
+
           if (!invoiceMap.has(key)) {
-            const existingInvoice = invoices.find(inv => 
+            const existingInvoice = invoices.find(inv =>
               inv.cardId === card.id && inv.month === invoiceMonth && inv.year === invoiceYear
             );
 
@@ -607,8 +607,8 @@ export function useFinanceData() {
       setInvoices(prev => {
         const existing = prev.find(inv => inv.id === invoiceId);
         if (existing) {
-          return prev.map(inv => 
-            inv.id === invoiceId 
+          return prev.map(inv =>
+            inv.id === invoiceId
               ? { ...inv, status: 'paid' as InvoiceStatus, paidDate: paymentDate, paidFromAccountId: accountId }
               : inv
           );
@@ -627,8 +627,8 @@ export function useFinanceData() {
       });
 
       if (invoice) {
-        setAccounts(prev => prev.map(acc => 
-          acc.id === accountId 
+        setAccounts(prev => prev.map(acc =>
+          acc.id === accountId
             ? { ...acc, balance: acc.balance - invoice.totalAmount }
             : acc
         ));
@@ -746,7 +746,7 @@ export function useFinanceData() {
     try {
       // Handle recurring expense instances
       const baseId = expenseId.includes('_') ? expenseId.split('_')[0] : expenseId;
-      
+
       await supabase
         .from('expenses')
         .update({
@@ -777,7 +777,7 @@ export function useFinanceData() {
     try {
       // Handle recurring expense instances - update the base expense
       const baseId = expense.id.includes('_') ? expense.id.split('_')[0] : expense.id;
-      
+
       const { error } = await supabase
         .from('expenses')
         .update({
@@ -790,8 +790,8 @@ export function useFinanceData() {
           area_id: expense.areaId || null,
           category_id: expense.categoryId || null,
           status: expense.status,
-          payment_date: expense.paymentDate 
-            ? (expense.paymentDate instanceof Date ? expense.paymentDate.toISOString().split('T')[0] : expense.paymentDate) 
+          payment_date: expense.paymentDate
+            ? (expense.paymentDate instanceof Date ? expense.paymentDate.toISOString().split('T')[0] : expense.paymentDate)
             : null,
         })
         .eq('id', baseId);
@@ -811,8 +811,8 @@ export function useFinanceData() {
             areaId: expense.areaId,
             categoryId: expense.categoryId,
             status: expense.status,
-            paymentDate: expense.paymentDate 
-              ? (expense.paymentDate instanceof Date ? expense.paymentDate : new Date(expense.paymentDate)) 
+            paymentDate: expense.paymentDate
+              ? (expense.paymentDate instanceof Date ? expense.paymentDate : new Date(expense.paymentDate))
               : undefined,
           };
         }
@@ -830,7 +830,7 @@ export function useFinanceData() {
     try {
       // Handle recurring expense instances - delete the base expense
       const baseId = expenseId.includes('_') ? expenseId.split('_')[0] : expenseId;
-      
+
       const { error } = await supabase
         .from('expenses')
         .delete()
@@ -878,6 +878,32 @@ export function useFinanceData() {
       toast.error('Erro ao adicionar conta');
     }
   };
+
+  const updateAccount = useCallback(async (account: Account) => {
+    try {
+      const { error } = await supabase
+        .from('accounts')
+        .update({
+          name: account.name,
+          balance: account.balance,
+          color: account.color,
+        })
+        .eq('id', account.id);
+
+      if (error) throw error;
+
+      setAccounts(prev => prev.map(a =>
+        a.id === account.id
+          ? { ...a, name: account.name, balance: account.balance, color: account.color }
+          : a
+      ));
+
+      toast.success('Conta atualizada!');
+    } catch (error) {
+      console.error('Error updating account:', error);
+      toast.error('Erro ao atualizar conta');
+    }
+  }, []);
 
   const addCard = async (card: Omit<Card, 'id'>) => {
     if (!user) return;
@@ -1117,7 +1143,7 @@ export function useFinanceData() {
     try {
       // Handle recurring expense instances
       const baseId = expenseId.includes('_') ? expenseId.split('_')[0] : expenseId;
-      
+
       const { error } = await supabase
         .from('expenses')
         .update({
@@ -1208,6 +1234,7 @@ export function useFinanceData() {
     deleteIncome,
     updateIncomeDate,
     addAccount,
+    updateAccount,
     addCard,
     addArea,
     addCategory,

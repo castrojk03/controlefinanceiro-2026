@@ -28,7 +28,7 @@ const Index = () => {
   // Security hooks - monitor session and inactivity
   useInactivityLogout(30 * 60 * 1000); // 30 minutes inactivity timeout
   useSessionMonitor();
-  
+
   const { signOut, user } = useAuth();
   const {
     accounts,
@@ -62,6 +62,7 @@ const Index = () => {
     deleteIncome,
     updateIncomeDate,
     addAccount,
+    updateAccount,
     addCard,
     addArea,
     addCategory,
@@ -115,7 +116,7 @@ const Index = () => {
 
   const [activeTab, setActiveTab] = useState('expenses');
   const [showProfile, setShowProfile] = useState(false);
-  
+
   // Edit expense dialog state
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [editExpenseDialogOpen, setEditExpenseDialogOpen] = useState(false);
@@ -156,22 +157,26 @@ const Index = () => {
               <p className="text-xs text-muted-foreground">Gestão Financeira Pessoal</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <AddTransactionDialog accounts={accounts} cards={cards} areas={areas} categories={categories} onAddIncome={addIncome} onAddExpense={addExpense} />
-            <SettingsDialog 
-              accounts={accounts} 
-              cards={cards} 
-              areas={areas} 
-              categories={categories} 
-              onAddAccount={addAccount} 
-              onAddCard={addCard} 
-              onAddArea={addArea} 
-              onAddCategory={addCategory} 
-              onClearAllData={clearAllData} 
-              onDeleteAccount={deleteAccount} 
-              onDeleteCard={deleteCard} 
-              onDeleteArea={deleteArea} 
+            <SettingsDialog
+              accounts={accounts}
+              cards={cards}
+              areas={areas}
+              categories={categories}
+              incomes={allIncomes}
+              expenses={allExpenses}
+              invoices={invoices}
+              onAddAccount={addAccount}
+              onUpdateAccount={updateAccount}
+              onAddCard={addCard}
+              onAddArea={addArea}
+              onAddCategory={addCategory}
+              onClearAllData={clearAllData}
+              onDeleteAccount={deleteAccount}
+              onDeleteCard={deleteCard}
+              onDeleteArea={deleteArea}
               onDeleteCategory={deleteCategory}
             />
             <Button variant={showProfile ? "default" : "outline"} size="icon" onClick={() => setShowProfile(!showProfile)} title="Perfil">
@@ -195,11 +200,11 @@ const Index = () => {
 
             {/* Budget Panel */}
             {budgetsWithSpent.length > 0 && (
-              <BudgetPanel 
-                budgets={budgetsWithSpent} 
-                summary={budgetSummary} 
-                selectedMonth={selectedMonth} 
-                selectedYear={selectedYear} 
+              <BudgetPanel
+                budgets={budgetsWithSpent}
+                summary={budgetSummary}
+                selectedMonth={selectedMonth}
+                selectedYear={selectedYear}
               />
             )}
 
@@ -237,13 +242,13 @@ const Index = () => {
               </TabsList>
 
               <TabsContent value="expenses">
-                <ExpenseListPanel 
-                  expenses={allExpenses} 
-                  accounts={accounts} 
-                  cards={cards} 
-                  areas={areas} 
-                  categories={categories} 
-                  onEditExpense={handleEditExpense} 
+                <ExpenseListPanel
+                  expenses={allExpenses}
+                  accounts={accounts}
+                  cards={cards}
+                  areas={areas}
+                  categories={categories}
+                  onEditExpense={handleEditExpense}
                 />
               </TabsContent>
 
@@ -275,9 +280,9 @@ const Index = () => {
               </TabsContent>
 
               <TabsContent value="general">
-                <GeneralPanel 
-                  incomesByOrigin={incomesByOrigin} 
-                  expensesByArea={expensesByArea} 
+                <GeneralPanel
+                  incomesByOrigin={incomesByOrigin}
+                  expensesByArea={expensesByArea}
                   selectedYear={selectedYear}
                   allIncomes={allIncomes}
                   allExpenses={allExpenses}
@@ -293,10 +298,10 @@ const Index = () => {
               </TabsContent>
 
               <TabsContent value="daily">
-                <DailyPanel 
-                  dailyBalances={dailyBalances} 
-                  selectedMonth={selectedMonth} 
-                  selectedYear={selectedYear} 
+                <DailyPanel
+                  dailyBalances={dailyBalances}
+                  selectedMonth={selectedMonth}
+                  selectedYear={selectedYear}
                   expenses={expenses}
                   incomes={incomes}
                   areas={areas}
@@ -307,10 +312,10 @@ const Index = () => {
               </TabsContent>
 
               <TabsContent value="calendar">
-                <CalendarPanel 
-                  incomes={allIncomes} 
-                  expenses={allExpenses} 
-                  invoices={invoices} 
+                <CalendarPanel
+                  incomes={allIncomes}
+                  expenses={allExpenses}
+                  invoices={invoices}
                   cards={cards}
                   areas={areas}
                   categories={categories}
@@ -322,15 +327,15 @@ const Index = () => {
               </TabsContent>
 
               <TabsContent value="invoices">
-                <InvoicesPanel 
-                  cards={cards} 
-                  accounts={accounts} 
-                  expenses={expenses} 
-                  invoices={invoices} 
-                  selectedMonth={selectedMonth} 
-                  selectedYear={selectedYear} 
-                  onPayInvoice={payInvoice} 
-                  getCardUsedLimit={getCardUsedLimit} 
+                <InvoicesPanel
+                  cards={cards}
+                  accounts={accounts}
+                  expenses={expenses}
+                  invoices={invoices}
+                  selectedMonth={selectedMonth}
+                  selectedYear={selectedYear}
+                  onPayInvoice={payInvoice}
+                  getCardUsedLimit={getCardUsedLimit}
                   getInvoiceExpenses={getInvoiceExpenses}
                   onEditExpense={handleEditExpense}
                 />

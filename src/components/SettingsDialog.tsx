@@ -7,11 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Settings, Building2, CreditCard, Tags, FolderOpen, Plus, Trash2 } from 'lucide-react';
-import { Account, Card as CardType, Area, Category, PaymentMethod } from '@/types/finance';
+import { Settings, Building2, CreditCard, Tags, FolderOpen, Plus, Trash2, Pencil, Eye } from 'lucide-react';
+import { Account, Card as CardType, Area, Category, PaymentMethod, Income, Expense, Invoice } from '@/types/finance';
 import { toast } from 'sonner';
+import { ColorPicker } from '@/components/ColorPicker';
+import { EditAccountDialog } from '@/components/EditAccountDialog';
+import { AccountDetailsDialog } from '@/components/AccountDetailsDialog';
 
-type DeleteItem = 
+type DeleteItem =
   | { type: 'account'; id: string; name: string }
   | { type: 'card'; id: string; name: string }
   | { type: 'area'; id: string; name: string }
@@ -23,7 +26,11 @@ interface SettingsDialogProps {
   cards: CardType[];
   areas: Area[];
   categories: Category[];
+  incomes: Income[];
+  expenses: Expense[];
+  invoices: Invoice[];
   onAddAccount: (account: Omit<Account, 'id'>) => void;
+  onUpdateAccount: (account: Account) => void;
   onAddCard: (card: Omit<CardType, 'id'>) => void;
   onAddArea: (area: Omit<Area, 'id'>) => void;
   onAddCategory: (category: Omit<Category, 'id'>) => void;
@@ -49,7 +56,11 @@ export function SettingsDialog({
   cards,
   areas,
   categories,
+  incomes,
+  expenses,
+  invoices,
   onAddAccount,
+  onUpdateAccount,
   onAddCard,
   onAddArea,
   onAddCategory,
@@ -61,10 +72,12 @@ export function SettingsDialog({
 }: SettingsDialogProps) {
   const [open, setOpen] = useState(false);
   const [deleteItem, setDeleteItem] = useState<DeleteItem>(null);
+  const [editAccount, setEditAccount] = useState<Account | null>(null);
+  const [detailsAccount, setDetailsAccount] = useState<Account | null>(null);
 
   const handleConfirmDelete = () => {
     if (!deleteItem) return;
-    
+
     switch (deleteItem.type) {
       case 'account':
         onDeleteAccount(deleteItem.id);
@@ -104,6 +117,11 @@ export function SettingsDialog({
   const [accountName, setAccountName] = useState('');
   const [accountBalance, setAccountBalance] = useState('');
   const [accountColor, setAccountColor] = useState(COLORS[0].value);
+
+  const handleUpdateAccount = (account: Account) => {
+    onUpdateAccount(account);
+    setEditAccount(null);
+  };
 
   // Card form
   const [cardName, setCardName] = useState('');
@@ -256,24 +274,7 @@ export function SettingsDialog({
                   />
                 </div>
               </div>
-              <div className="grid gap-2">
-                <Label>Cor</Label>
-                <Select value={accountColor} onValueChange={setAccountColor}>
-                  <SelectTrigger className="border-2">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {COLORS.map((color) => (
-                      <SelectItem key={color.value} value={color.value}>
-                        <div className="flex items-center gap-2">
-                          <div className="h-4 w-4 border" style={{ backgroundColor: color.value }} />
-                          {color.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <ColorPicker value={accountColor} onChange={setAccountColor} />
               <Button onClick={handleAddAccount} className="gap-2 border-2">
                 <Plus className="h-4 w-4" />
                 Adicionar Conta
@@ -287,18 +288,37 @@ export function SettingsDialog({
                   {accounts.map((account) => (
                     <div key={account.id} className="flex items-center justify-between border-2 p-3">
                       <div className="flex items-center gap-3">
-                        <div className="h-4 w-4 border" style={{ backgroundColor: account.color }} />
+                        <div className="h-4 w-4 rounded border" style={{ backgroundColor: account.color }} />
                         <span className="font-medium">{account.name}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono">
+                        <span className="font-mono text-sm">
                           {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(account.balance)}
                         </span>
-                      <Button
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-primary hover:bg-primary/10"
+                          onClick={() => setDetailsAccount(account)}
+                          title="Ver detalhes"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-blue-500 hover:bg-blue-500/10"
+                          onClick={() => setEditAccount(account)}
+                          title="Editar conta"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:bg-destructive/10"
                           onClick={() => setDeleteItem({ type: 'account', id: account.id, name: account.name })}
+                          title="Excluir conta"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -582,8 +602,8 @@ export function SettingsDialog({
               <p className="text-sm text-muted-foreground">
                 Esta ação irá remover permanentemente todas as informações cadastradas: contas, cartões, áreas, categorias, receitas e despesas.
               </p>
-              <Button 
-                variant="destructive" 
+              <Button
+                variant="destructive"
                 onClick={handleClearAllData}
                 className="gap-2 border-2"
               >
@@ -614,6 +634,25 @@ export function SettingsDialog({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Account Dialog */}
+      <EditAccountDialog
+        account={editAccount}
+        open={!!editAccount}
+        onOpenChange={(open) => !open && setEditAccount(null)}
+        onSave={handleUpdateAccount}
+      />
+
+      {/* Account Details Dialog */}
+      <AccountDetailsDialog
+        account={detailsAccount}
+        open={!!detailsAccount}
+        onOpenChange={(open) => !open && setDetailsAccount(null)}
+        cards={cards}
+        expenses={expenses}
+        incomes={incomes}
+        invoices={invoices}
+      />
     </Dialog>
   );
 }
