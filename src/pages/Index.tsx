@@ -14,6 +14,7 @@ import { AddTransactionDialog } from '@/components/AddTransactionDialog';
 import { EditExpenseDialog } from '@/components/EditExpenseDialog';
 import { EditIncomeDialog } from '@/components/EditIncomeDialog';
 import { SettingsDialog } from '@/components/SettingsDialog';
+import { GlobalSearchDialog } from '@/components/GlobalSearchDialog';
 import { useFinanceData } from '@/hooks/useFinanceData';
 import { useBudgets } from '@/hooks/useBudgets';
 import { useAuth } from '@/hooks/useAuth';
@@ -160,6 +161,16 @@ const Index = () => {
 
           <div className="flex items-center gap-2">
             <AddTransactionDialog accounts={accounts} cards={cards} areas={areas} categories={categories} onAddIncome={addIncome} onAddExpense={addExpense} />
+            <GlobalSearchDialog
+              expenses={allExpenses}
+              incomes={allIncomes}
+              accounts={accounts}
+              cards={cards}
+              areas={areas}
+              categories={categories}
+              onEditExpense={handleEditExpense}
+              onEditIncome={handleEditIncome}
+            />
             <SettingsDialog
               accounts={accounts}
               cards={cards}
