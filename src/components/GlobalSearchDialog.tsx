@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState, useMemo } from 'react';
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Button } from '@/components/ui/button';

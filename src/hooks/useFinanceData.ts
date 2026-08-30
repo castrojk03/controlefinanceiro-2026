@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Account, Card, Area, Category, Income, Expense, DailyBalance, Invoice, InvoiceStatus } from '@/types/finance';
 import { initialAreas, initialCategories } from '@/lib/mockData';

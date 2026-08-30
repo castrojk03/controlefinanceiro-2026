@@ -1,5 +1,7 @@
+"use client";
+
 import { useState, useMemo, useCallback } from 'react';
-import { Calendar, dateFnsLocalizer, View, SlotInfo } from 'react-big-calendar';
+import { Calendar, dateFnsLocalizer, View, SlotInfo, type CalendarProps } from 'react-big-calendar';
 import withDragAndDrop, { EventInteractionArgs } from 'react-big-calendar/lib/addons/dragAndDrop';
 import { format, parse, startOfWeek, getDay, isBefore, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -27,9 +29,6 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-// Create DnD Calendar
-const DnDCalendar = withDragAndDrop(Calendar);
-
 type CalendarEventType = 'expense' | 'income' | 'invoice';
 
 interface CalendarEvent {
@@ -46,6 +45,11 @@ interface CalendarEvent {
   originalIncome?: Income;
   originalInvoice?: Invoice;
 }
+
+// Calendário com arrastar e soltar, tipado com o evento da aplicação
+const DnDCalendar = withDragAndDrop<CalendarEvent>(
+  Calendar as React.ComponentType<CalendarProps<CalendarEvent>>
+);
 
 interface CalendarPanelProps {
   incomes: Income[];

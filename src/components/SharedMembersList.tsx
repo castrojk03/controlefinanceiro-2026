@@ -1,3 +1,5 @@
+"use client";
+
 import { SharedMember, AccessRole } from '@/hooks/useSharing';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';

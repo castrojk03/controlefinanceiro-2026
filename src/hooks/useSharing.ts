@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -10,7 +12,7 @@ export interface SharedMember {
   member_id: string;
   email: string;
   role: AccessRole;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface Invitation {
@@ -20,7 +22,7 @@ export interface Invitation {
   token: string;
   expires_at: string;
   accepted_at: string | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 export function useSharing() {
