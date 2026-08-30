@@ -1,3 +1,27 @@
+# Dependências
+node_modules
+.pnp
+.pnp.js
+
+# Testes
+coverage
+
+# Next.js
+.next/
+out/
+build
+dist
+dist-ssr
+next-env.d.ts
+
+# Produção
+*.local
+
+# Variáveis de ambiente — nunca versionar
+.env
+.env*.local
+.env.production
+
 # Logs
 logs
 *.log
@@ -7,12 +31,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Deploy
+.vercel
 
-# Editor directories and files
+# Editor
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -22,3 +44,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Supabase
+.branches
+.temp
