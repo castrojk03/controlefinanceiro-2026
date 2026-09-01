@@ -1,73 +1,96 @@
-# Welcome to your Lovable project
+# Controle Financeiro
 
-## Project info
+Central de controle financeiro doméstico: lançamento diário de receitas e despesas,
+previsibilidade das contas a pagar e acompanhamento da fatura do cartão.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Uso pessoal (John + Amanda).
 
-## How can I edit this code?
+## O que o app resolve
 
-There are several ways of editing your application.
+Três perguntas, cada uma vinda de um método diferente:
 
-**Use Lovable**
+| Pergunta | Método | Eixo |
+|---|---|---|
+| Para onde meu dinheiro foi? | 50-35-15 | área → categoria |
+| O que tenho a pagar, e quando? | Plano de Contas | vencimento |
+| Como estou hoje? | Termômetro | dia |
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+São camadas de visão sobre o mesmo lançamento, não modos alternativos.
+A documentação completa está no vault, em `C01 - Claude Code/produtos/controle-financeiro/`.
 
-Changes made via Lovable will be committed automatically to this repo.
+## Stack
 
-**Use your preferred IDE**
+- **Next.js 15** (App Router) + React 19 + TypeScript
+- **Tailwind CSS** + shadcn/ui
+- **Supabase** — Postgres com RLS, autenticação e compartilhamento entre membros
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Rodando localmente
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Requer Node 20+.
 
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+npm install
+cp .env.example .env.local   # preencha com as chaves do seu projeto Supabase
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Abra http://localhost:3000. A primeira compilação de cada rota leva alguns segundos;
+depois disso a navegação é instantânea.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Variáveis de ambiente
 
-**Use GitHub Codespaces**
+Copie `.env.example` para `.env.local` e preencha com os valores de
+**Project Settings → API** no dashboard do Supabase:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+```
 
-## What technologies are used for this project?
+A chave `anon` é pública por natureza — quem protege os dados é a RLS, não o segredo da chave.
+Nunca versione `.env.local`.
 
-This project is built with:
+## Scripts
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+| Comando | O que faz |
+|---|---|
+| `npm run dev` | Servidor de desenvolvimento |
+| `npm run build` | Build de produção |
+| `npm start` | Roda o build de produção |
+| `npm run lint` | Verificação de lint |
 
-## How can I deploy this project?
+## Estrutura
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+```
+src/
+├── app/                    # rotas (App Router)
+│   ├── auth/               # login, cadastro, recuperação de senha
+│   ├── layout.tsx
+│   └── page.tsx
+├── components/             # componentes da aplicação
+│   └── ui/                 # shadcn/ui
+├── hooks/                  # hooks herdados da versão anterior (em migração)
+├── integrations/supabase/  # tipos gerados do banco
+├── lib/supabase/           # clients: server, browser e middleware
+├── types/                  # tipos de domínio
+└── middleware.ts           # renova a sessão e protege as rotas
 
-## Can I connect a custom domain to my Lovable project?
+supabase/migrations/        # schema versionado
+```
 
-Yes, you can!
+## Autenticação
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+A sessão vive em cookies (`@supabase/ssr`), o que a torna legível no servidor.
+O `middleware.ts` renova a sessão a cada request e barra acesso não autenticado
+antes de qualquer render — a proteção não depende do browser.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Login, cadastro e recuperação de senha são Server Actions: as credenciais não
+passam pelo bundle do cliente.
+
+## Banco de dados
+
+O schema fica em `supabase/migrations/`, versionado junto do código.
+Todas as tabelas têm RLS, com políticas para o dono dos dados e para membros
+com acesso compartilhado (`has_shared_access`, `get_effective_owner_id`).
+Há validação no servidor para valores monetários, limite de cartão e sanitização
+de texto — o cliente não é a única linha de defesa.
