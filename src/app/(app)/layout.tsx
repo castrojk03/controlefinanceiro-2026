@@ -24,7 +24,7 @@ export default async function LayoutApp({
   if (!user) redirect('/auth');
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-background md:flex-row">
       <MenuLateral />
 
       <div className="flex min-w-0 flex-1 flex-col">

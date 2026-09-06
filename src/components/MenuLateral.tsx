@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import {
   Home,
   List,
+  CalendarClock,
   Gauge,
   Table,
   CalendarDays,
@@ -22,16 +23,17 @@ import {
  * Configurações no fim.
  */
 const TELAS = [
-  { href: '/', rotulo: 'Início', Icone: Home },
-  { href: '/lancamentos', rotulo: 'Lançamentos', Icone: List },
-  { href: '/limites', rotulo: 'Limites', Icone: Gauge },
-  { href: '/painel-geral', rotulo: 'Painel Geral', Icone: Table },
-  { href: '/painel-diario', rotulo: 'Painel Diário', Icone: CalendarDays },
-  { href: '/calendario', rotulo: 'Calendário', Icone: Calendar },
-  { href: '/faturas', rotulo: 'Faturas', Icone: Receipt },
-  { href: '/simulacao', rotulo: 'Simulação', Icone: Calculator },
-  { href: '/relatorios', rotulo: 'Relatórios', Icone: BarChart3 },
-  { href: '/configuracoes', rotulo: 'Configurações', Icone: Settings },
+  { href: '/', rotulo: 'Início', Icone: Home, pronta: true },
+  { href: '/lancamentos', rotulo: 'Lançamentos', Icone: List, pronta: false },
+  { href: '/recorrentes', rotulo: 'Recorrentes', Icone: CalendarClock, pronta: true },
+  { href: '/limites', rotulo: 'Limites', Icone: Gauge, pronta: false },
+  { href: '/painel-geral', rotulo: 'Painel Geral', Icone: Table, pronta: false },
+  { href: '/painel-diario', rotulo: 'Painel Diário', Icone: CalendarDays, pronta: false },
+  { href: '/calendario', rotulo: 'Calendário', Icone: Calendar, pronta: false },
+  { href: '/faturas', rotulo: 'Faturas', Icone: Receipt, pronta: false },
+  { href: '/simulacao', rotulo: 'Simulação', Icone: Calculator, pronta: false },
+  { href: '/relatorios', rotulo: 'Relatórios', Icone: BarChart3, pronta: false },
+  { href: '/configuracoes', rotulo: 'Configurações', Icone: Settings, pronta: true },
 ] as const;
 
 export function MenuLateral() {
@@ -40,11 +42,28 @@ export function MenuLateral() {
   return (
     <nav
       aria-label="Navegação principal"
-      className="hidden w-52 shrink-0 border-r bg-muted/30 p-3 md:block"
+      className="w-full shrink-0 overflow-x-auto border-b bg-muted/30 p-3 md:w-52 md:overflow-visible md:border-b-0 md:border-r"
     >
-      <ul className="flex flex-col gap-0.5">
-        {TELAS.map(({ href, rotulo, Icone }) => {
+      <ul className="flex flex-row gap-0.5 md:flex-col">
+        {TELAS.map(({ href, rotulo, Icone, pronta }) => {
           const ativo = href === '/' ? caminho === '/' : caminho.startsWith(href);
+
+          // Tela ainda não construída: aparece no menu para mostrar o plano,
+          // mas não navega — clicar e cair num 404 é pior que não clicar.
+          if (!pronta) {
+            return (
+              <li key={href}>
+                <span
+                  aria-disabled="true"
+                  title="Ainda não construída"
+                  className="flex cursor-not-allowed items-center gap-2.5 whitespace-nowrap rounded-md px-3 py-2 text-sm text-muted-foreground/45"
+                >
+                  <Icone className="h-4 w-4 shrink-0" />
+                  {rotulo}
+                </span>
+              </li>
+            );
+          }
 
           return (
             <li key={href}>
@@ -52,7 +71,7 @@ export function MenuLateral() {
                 href={href}
                 aria-current={ativo ? 'page' : undefined}
                 className={cn(
-                  'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors',
+                  'flex items-center gap-2.5 whitespace-nowrap rounded-md px-3 py-2 text-sm transition-colors',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   ativo
                     ? 'bg-background font-medium text-foreground shadow-sm'

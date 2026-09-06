@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Wallet, CreditCard, CalendarClock, Gauge } from 'lucide-react';
 
@@ -26,6 +25,7 @@ export default async function PaginaInicio() {
       total: contas.count ?? 0,
       nota: 'Onde o dinheiro fica.',
       disponivel: true,
+      destino: '/configuracoes',
     },
     {
       Icone: CreditCard,
@@ -33,13 +33,15 @@ export default async function PaginaInicio() {
       total: cartoes.count ?? 0,
       nota: 'Fechamento e vencimento permitem prever a fatura.',
       disponivel: true,
+      destino: '/configuracoes',
     },
     {
       Icone: CalendarClock,
       rotulo: 'Contas recorrentes',
       total: recorrencias.count ?? 0,
       nota: 'Sem elas, o bloco "próximos 7 dias" fica vazio.',
-      disponivel: false,
+      disponivel: true,
+      destino: '/recorrentes',
     },
     {
       Icone: Gauge,
@@ -47,6 +49,7 @@ export default async function PaginaInicio() {
       total: limites.count ?? 0,
       nota: 'Referência de gastos, não trava.',
       disponivel: false,
+      destino: '/limites',
     },
   ];
 
@@ -79,31 +82,30 @@ export default async function PaginaInicio() {
           <ul className="divide-y">
             {passos
               .filter((p) => p.disponivel)
-              .map(({ Icone, rotulo, total, nota }) => (
-                <li key={rotulo} className="flex items-center gap-3 py-3">
-                  <Icone
-                    className={
-                      total > 0
-                        ? 'h-4 w-4 shrink-0 text-foreground'
-                        : 'h-4 w-4 shrink-0 text-muted-foreground'
-                    }
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium">{rotulo}</p>
-                    <p className="text-sm text-muted-foreground">{nota}</p>
-                  </div>
-                  <span className="text-sm tabular-nums text-muted-foreground">
-                    {total > 0 ? `${total} cadastrado(s)` : 'nenhum'}
-                  </span>
+              .map(({ Icone, rotulo, total, nota, destino }) => (
+                <li key={rotulo}>
+                  <Link
+                    href={destino}
+                    className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Icone
+                      className={
+                        total > 0
+                          ? 'h-4 w-4 shrink-0 text-foreground'
+                          : 'h-4 w-4 shrink-0 text-muted-foreground'
+                      }
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium">{rotulo}</p>
+                      <p className="text-sm text-muted-foreground">{nota}</p>
+                    </div>
+                    <span className="text-sm tabular-nums text-muted-foreground">
+                      {total > 0 ? `${total} cadastrado(s)` : 'cadastrar'}
+                    </span>
+                  </Link>
                 </li>
               ))}
           </ul>
-
-          <div className="mt-5">
-            <Button asChild>
-              <Link href="/configuracoes">Ir para Configurações</Link>
-            </Button>
-          </div>
         </CardContent>
       </Card>
 

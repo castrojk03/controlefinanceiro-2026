@@ -13,6 +13,33 @@ export type Responsavel = 'john' | 'amanda' | 'casal';
 export type ClassificacaoArea = 'fixo' | 'prioridade' | 'estilo_vida';
 export type StatusFatura = 'aberta' | 'fechada' | 'parcial' | 'paga';
 export type TipoCartao = 'Crédito' | 'Débito';
+export type FrequenciaRecorrencia = 'diaria' | 'semanal' | 'mensal' | 'anual';
+export type FimRecorrencia = 'nunca' | 'data' | 'ocorrencias';
+
+export interface Recorrencia {
+  id: string;
+  user_id: string;
+  tipo: TipoLancamento;
+  descricao: string;
+  valor: number;
+  valor_variavel: boolean;
+  area_id: string | null;
+  categoria_id: string | null;
+  conta_id: string | null;
+  cartao_id: string | null;
+  responsavel: Responsavel;
+  frequencia: FrequenciaRecorrencia;
+  intervalo: number;
+  dias_semana: number[] | null;
+  dia_do_mes: number | null;
+  inicio: string;
+  fim_tipo: FimRecorrencia;
+  fim_data: string | null;
+  fim_ocorrencias: number | null;
+  encerrada_em: string | null;
+  materializado_ate: string | null;
+  created_at: string;
+}
 
 export interface Conta {
   id: string;
