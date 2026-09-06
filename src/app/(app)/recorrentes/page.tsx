@@ -5,6 +5,7 @@ import type {
   Cartao,
   Area,
   Categoria,
+  Origem,
   Recorrencia,
 } from '@/types/financeiro';
 
@@ -15,7 +16,7 @@ import type {
 export default async function PaginaRecorrentes() {
   const supabase = await createClient();
 
-  const [recorrRes, contasRes, cartoesRes, areasRes, categoriasRes] =
+  const [recorrRes, contasRes, cartoesRes, areasRes, categoriasRes, origensRes] =
     await Promise.all([
       supabase
         .from('recorrencias')
@@ -26,6 +27,7 @@ export default async function PaginaRecorrentes() {
       supabase.from('cards').select('*').order('name'),
       supabase.from('areas').select('*').order('name'),
       supabase.from('categories').select('*').order('name'),
+      supabase.from('origens').select('*').eq('ativa', true).order('nome'),
     ]);
 
   return (
@@ -35,6 +37,7 @@ export default async function PaginaRecorrentes() {
       cartoes={(cartoesRes.data ?? []) as Cartao[]}
       areas={(areasRes.data ?? []) as Area[]}
       categorias={(categoriasRes.data ?? []) as Categoria[]}
+      origens={(origensRes.data ?? []) as Origem[]}
       erro={recorrRes.error?.message ?? null}
     />
   );

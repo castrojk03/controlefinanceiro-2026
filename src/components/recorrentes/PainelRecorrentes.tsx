@@ -15,6 +15,7 @@ import type {
   Cartao,
   Area,
   Categoria,
+  Origem,
   Recorrencia,
   FrequenciaRecorrencia,
   FimRecorrencia,
@@ -55,6 +56,7 @@ interface Props {
   cartoes: Cartao[];
   areas: Area[];
   categorias: Categoria[];
+  origens: Origem[];
   erro: string | null;
 }
 
@@ -64,6 +66,7 @@ export function PainelRecorrentes({
   cartoes,
   areas,
   categorias,
+  origens,
   erro,
 }: Props) {
   const [pendente, iniciar] = useTransition();
@@ -658,47 +661,84 @@ export function PainelRecorrentes({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {tipo === 'entrada' ? (
+                /* Receita tem origem, não área de custo: salário não é
+                   "Habitação" nem "Lazer" — é "Salário John". */
                 <div className="space-y-2">
-                  <Label htmlFor="area_id">Área</Label>
+                  <Label htmlFor="origem_id">Origem</Label>
                   <select
-                    id="area_id"
-                    name="area_id"
-                    value={areaId}
-                    onChange={(e) => setAreaId(e.target.value)}
+                    id="origem_id"
+                    name="origem_id"
+                    required
                     className={campoSelect}
                   >
                     <option value="">Escolher…</option>
-                    {areas.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name}
-                      </option>
-                    ))}
+                    <optgroup label="Fixas">
+                      {origens
+                        .filter((o) => o.tipo === 'fixa')
+                        .map((o) => (
+                          <option key={o.id} value={o.id}>
+                            {o.nome}
+                          </option>
+                        ))}
+                    </optgroup>
+                    <optgroup label="Variáveis">
+                      {origens
+                        .filter((o) => o.tipo === 'variavel')
+                        .map((o) => (
+                          <option key={o.id} value={o.id}>
+                            {o.nome}
+                            {o.tributada ? ' · tributada' : ''}
+                          </option>
+                        ))}
+                    </optgroup>
                   </select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="categoria_id">Categoria</Label>
-                  <select
-                    id="categoria_id"
-                    name="categoria_id"
-                    disabled={!areaId}
-                    className={campoSelect}
-                  >
-                    <option value="">
-                      {areaId ? 'Escolher…' : 'Escolha a área antes'}
-                    </option>
-                    {categoriasDaArea.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="area_id">Área</Label>
+                    <select
+                      id="area_id"
+                      name="area_id"
+                      value={areaId}
+                      onChange={(e) => setAreaId(e.target.value)}
+                      className={campoSelect}
+                    >
+                      <option value="">Escolher…</option>
+                      {areas.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="categoria_id">Categoria</Label>
+                    <select
+                      id="categoria_id"
+                      name="categoria_id"
+                      disabled={!areaId}
+                      className={campoSelect}
+                    >
+                      <option value="">
+                        {areaId ? 'Escolher…' : 'Escolha a área antes'}
                       </option>
-                    ))}
-                  </select>
+                      {categoriasDaArea.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="conta_id">Sai da conta</Label>
+                  <Label htmlFor="conta_id">
+                    {tipo === 'entrada' ? 'Entra na conta' : 'Sai da conta'}
+                  </Label>
                   <select id="conta_id" name="conta_id" className={campoSelect}>
                     <option value="">Nenhuma</option>
                     {contas.map((c) => (
@@ -708,7 +748,8 @@ export function PainelRecorrentes({
                     ))}
                   </select>
                 </div>
-                <div className="space-y-2">
+                {/* Receita não cai em cartão de crédito. */}
+                <div className={tipo === 'entrada' ? 'hidden' : 'space-y-2'}>
                   <Label htmlFor="cartao_id">Ou no cartão</Label>
                   <select id="cartao_id" name="cartao_id" className={campoSelect}>
                     <option value="">Nenhum</option>

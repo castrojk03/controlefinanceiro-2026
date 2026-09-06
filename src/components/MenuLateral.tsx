@@ -24,7 +24,7 @@ import {
  */
 const TELAS = [
   { href: '/', rotulo: 'Início', Icone: Home, pronta: true },
-  { href: '/lancamentos', rotulo: 'Lançamentos', Icone: List, pronta: false },
+  { href: '/lancamentos', rotulo: 'Lançamentos', Icone: List, pronta: true },
   { href: '/recorrentes', rotulo: 'Recorrentes', Icone: CalendarClock, pronta: true },
   { href: '/limites', rotulo: 'Limites', Icone: Gauge, pronta: false },
   { href: '/painel-geral', rotulo: 'Painel Geral', Icone: Table, pronta: false },

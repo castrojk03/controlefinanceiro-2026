@@ -1,138 +1,95 @@
-import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Wallet, CreditCard, CalendarClock, Gauge } from 'lucide-react';
+import { PainelInicio } from '@/components/inicio/PainelInicio';
+import type { Conta, Cartao, Lancamento } from '@/types/financeiro';
 
 /**
- * Início. Por enquanto mostra o que ainda falta configurar — o aviso
- * definido no fluxo 9. Os quatro números e o bloco "próximos 7 dias"
- * entram quando houver contas e lançamentos para somar.
+ * Início — a tela que responde "quanto tenho e o que vence".
+ *
+ * A janela de vencimentos vem por parâmetro (7, 15 ou 30 dias) para que a
+ * escolha sobreviva a um recarregamento e possa ser compartilhada por link.
  */
-export default async function PaginaInicio() {
+export default async function PaginaInicio({
+  searchParams,
+}: {
+  searchParams: Promise<{ dias?: string }>;
+}) {
+  const { dias } = await searchParams;
+  const janela = [7, 15, 30].includes(Number(dias)) ? Number(dias) : 7;
+
   const supabase = await createClient();
 
-  const [contas, cartoes, recorrencias, limites] = await Promise.all([
-    supabase.from('accounts').select('id', { count: 'exact', head: true }),
-    supabase.from('cards').select('id', { count: 'exact', head: true }),
-    supabase.from('recorrencias').select('id', { count: 'exact', head: true }),
-    supabase.from('limites').select('id', { count: 'exact', head: true }),
-  ]);
+  const hoje = new Date();
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
 
-  const passos = [
-    {
-      Icone: Wallet,
-      rotulo: 'Contas bancárias',
-      total: contas.count ?? 0,
-      nota: 'Onde o dinheiro fica.',
-      disponivel: true,
-      destino: '/configuracoes',
-    },
-    {
-      Icone: CreditCard,
-      rotulo: 'Cartões',
-      total: cartoes.count ?? 0,
-      nota: 'Fechamento e vencimento permitem prever a fatura.',
-      disponivel: true,
-      destino: '/configuracoes',
-    },
-    {
-      Icone: CalendarClock,
-      rotulo: 'Contas recorrentes',
-      total: recorrencias.count ?? 0,
-      nota: 'Sem elas, o bloco "próximos 7 dias" fica vazio.',
-      disponivel: true,
-      destino: '/recorrentes',
-    },
-    {
-      Icone: Gauge,
-      rotulo: 'Limites por área',
-      total: limites.count ?? 0,
-      nota: 'Referência de gastos, não trava.',
-      disponivel: false,
-      destino: '/limites',
-    },
-  ];
+  const limiteJanela = new Date(hoje);
+  limiteJanela.setDate(limiteJanela.getDate() + janela);
 
-  // Só cobra o que já dá para fazer — pedir sem oferecer o caminho é
-  // interface mentindo.
-  const faltando = passos.filter((p) => p.disponivel && p.total === 0);
-  const emConstrucao = passos.filter((p) => !p.disponivel);
+  const primeiroDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  const ultimoDoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+
+  const [contasRes, cartoesRes, mesRes, venceRes, ultimosRes, atrasadosRes] =
+    await Promise.all([
+      supabase.from('accounts').select('*').order('name'),
+      supabase.from('cards').select('*').order('name'),
+      // Movimento do mês corrente, para receitas e despesas
+      supabase
+        .from('lancamentos')
+        .select('tipo, valor, status')
+        .gte('data', iso(primeiroDoMes))
+        .lte('data', iso(ultimoDoMes)),
+      // O que vence na janela e ainda não foi pago
+      supabase
+        .from('lancamentos')
+        .select('*')
+        .neq('status', 'pago')
+        .gte('data', iso(hoje))
+        .lte('data', iso(limiteJanela))
+        .order('data'),
+      // Últimos lançamentos, para dar sinal de vida à tela
+      supabase
+        .from('lancamentos')
+        .select('*')
+        .eq('status', 'pago')
+        .order('data_pagamento', { ascending: false })
+        .limit(5),
+      // Vencidos e não pagos — o que não pode passar despercebido
+      supabase
+        .from('lancamentos')
+        .select('*')
+        .neq('status', 'pago')
+        .lt('data', iso(hoje))
+        .order('data'),
+    ]);
+
+  const contas = (contasRes.data ?? []) as Conta[];
+  const cartoes = (cartoesRes.data ?? []) as Cartao[];
+  const doMes = (mesRes.data ?? []) as Pick<
+    Lancamento,
+    'tipo' | 'valor' | 'status'
+  >[];
+
+  const saldoTotal = contas.reduce((s, c) => s + Number(c.balance), 0);
+
+  const receitasMes = doMes
+    .filter((l) => l.tipo === 'entrada')
+    .reduce((s, l) => s + Number(l.valor), 0);
+
+  const despesasMes = doMes
+    .filter((l) => l.tipo === 'saida')
+    .reduce((s, l) => s + Number(l.valor), 0);
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Início</h1>
-        <p className="text-muted-foreground">
-          Quanto você tem e o que vem pela frente.
-        </p>
-      </header>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">
-            {faltando.length > 0 ? 'Falta configurar' : 'Configuração em dia'}
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {faltando.length > 0
-              ? 'O app começa a responder assim que houver contas e compromissos cadastrados.'
-              : 'Contas e cartões cadastrados. O resto vem nas próximas etapas.'}
-          </p>
-        </CardHeader>
-        <CardContent>
-          <ul className="divide-y">
-            {passos
-              .filter((p) => p.disponivel)
-              .map(({ Icone, rotulo, total, nota, destino }) => (
-                <li key={rotulo}>
-                  <Link
-                    href={destino}
-                    className="-mx-2 flex items-center gap-3 rounded-md px-2 py-3 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <Icone
-                      className={
-                        total > 0
-                          ? 'h-4 w-4 shrink-0 text-foreground'
-                          : 'h-4 w-4 shrink-0 text-muted-foreground'
-                      }
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium">{rotulo}</p>
-                      <p className="text-sm text-muted-foreground">{nota}</p>
-                    </div>
-                    <span className="text-sm tabular-nums text-muted-foreground">
-                      {total > 0 ? `${total} cadastrado(s)` : 'cadastrar'}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-          </ul>
-        </CardContent>
-      </Card>
-
-      {emConstrucao.length > 0 && (
-        <Card className="mt-4 border-dashed">
-          <CardHeader>
-            <CardTitle className="text-lg">Ainda em construção</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Estas telas fazem parte do plano, mas ainda não existem.
-            </p>
-          </CardHeader>
-          <CardContent>
-            <ul className="divide-y">
-              {emConstrucao.map(({ Icone, rotulo, nota }) => (
-                <li key={rotulo} className="flex items-center gap-3 py-3">
-                  <Icone className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-muted-foreground">{rotulo}</p>
-                    <p className="text-sm text-muted-foreground">{nota}</p>
-                  </div>
-                  <span className="text-sm text-muted-foreground">em breve</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+    <PainelInicio
+      contas={contas}
+      cartoes={cartoes}
+      saldoTotal={saldoTotal}
+      receitasMes={receitasMes}
+      despesasMes={despesasMes}
+      vencimentos={(venceRes.data ?? []) as Lancamento[]}
+      atrasados={(atrasadosRes.data ?? []) as Lancamento[]}
+      ultimos={(ultimosRes.data ?? []) as Lancamento[]}
+      janela={janela}
+      erro={venceRes.error?.message ?? contasRes.error?.message ?? null}
+    />
   );
 }

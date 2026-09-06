@@ -38,15 +38,22 @@ function lerFormulario(formData: FormData) {
     | 'data'
     | 'ocorrencias';
 
+  const ehEntrada = String(formData.get('tipo') ?? 'saida') === 'entrada';
+
   return {
     tipo: String(formData.get('tipo') ?? 'saida') as 'entrada' | 'saida',
     descricao: String(formData.get('descricao') ?? '').trim(),
     valor: paraNumero(formData.get('valor')),
     valor_variavel: formData.get('valor_variavel') === 'on',
-    area_id: String(formData.get('area_id') ?? '') || null,
-    categoria_id: String(formData.get('categoria_id') ?? '') || null,
+    // Entrada tem origem; saída tem área e categoria. Guardar os dois lados
+    // preenchidos deixaria a receita aparecendo nos relatórios de gasto.
+    area_id: ehEntrada ? null : String(formData.get('area_id') ?? '') || null,
+    categoria_id: ehEntrada
+      ? null
+      : String(formData.get('categoria_id') ?? '') || null,
+    origem_id: ehEntrada ? String(formData.get('origem_id') ?? '') || null : null,
     conta_id: String(formData.get('conta_id') ?? '') || null,
-    cartao_id: String(formData.get('cartao_id') ?? '') || null,
+    cartao_id: ehEntrada ? null : String(formData.get('cartao_id') ?? '') || null,
     responsavel: String(formData.get('responsavel') ?? 'casal') as
       | 'john'
       | 'amanda'
@@ -74,6 +81,9 @@ function validar(dados: ReturnType<typeof lerFormulario>): string | null {
   if (!dados.descricao) return 'Informe a descrição.';
   if (dados.valor <= 0) return 'O valor precisa ser maior que zero.';
   if (!dados.inicio) return 'Informe a data de início.';
+  if (dados.tipo === 'entrada' && !dados.origem_id) {
+    return 'Escolha a origem da receita.';
+  }
   if (dados.fim_tipo === 'data' && !dados.fim_data) {
     return 'Informe a data em que a recorrência termina.';
   }
@@ -124,6 +134,7 @@ export async function criarRecorrencia(formData: FormData): Promise<Resultado> {
       data,
       area_id: dados.area_id,
       categoria_id: dados.categoria_id,
+      origem_id: dados.origem_id,
       conta_id: dados.conta_id,
       cartao_id: dados.cartao_id,
       responsavel: dados.responsavel,
@@ -198,6 +209,7 @@ export async function editarRecorrencia(
     valor_previsto: dados.valor,
     area_id: dados.area_id,
     categoria_id: dados.categoria_id,
+    origem_id: dados.origem_id,
     conta_id: dados.conta_id,
     cartao_id: dados.cartao_id,
     responsavel: dados.responsavel,

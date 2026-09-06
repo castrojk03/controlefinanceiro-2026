@@ -16,6 +16,54 @@ export type TipoCartao = 'Crédito' | 'Débito';
 export type FrequenciaRecorrencia = 'diaria' | 'semanal' | 'mensal' | 'anual';
 export type FimRecorrencia = 'nunca' | 'data' | 'ocorrencias';
 
+export type TipoOrigem = 'fixa' | 'variavel';
+
+/**
+ * De onde vem uma receita. Salário não tem área de custo — tem origem.
+ * O tipo separa o que dá para contar (fixa) do que é incerto (variável),
+ * distinção que o Plano de Contas usa para montar a previsão.
+ */
+export interface Origem {
+  id: string;
+  user_id: string;
+  nome: string;
+  tipo: TipoOrigem;
+  tributada: boolean;
+  responsavel: Responsavel;
+  cor: string;
+  ativa: boolean;
+  created_at: string;
+}
+
+export interface Lancamento {
+  id: string;
+  user_id: string;
+  tipo: TipoLancamento;
+  descricao: string;
+  valor: number;
+  valor_previsto: number | null;
+  data: string;
+  area_id: string | null;
+  categoria_id: string | null;
+  /** De onde vem a receita. Só faz sentido quando tipo = 'entrada'. */
+  origem_id: string | null;
+  conta_id: string | null;
+  cartao_id: string | null;
+  fatura_id: string | null;
+  status: StatusLancamento;
+  data_pagamento: string | null;
+  responsavel: Responsavel;
+  /** Quem registrou: o agente ou uma pessoa. Não confundir com origem_id. */
+  origem: OrigemLancamento;
+  editado_em: string | null;
+  recorrencia_id: string | null;
+  desligado_da_regra: boolean;
+  parcela_numero: number | null;
+  parcela_total: number | null;
+  tarefa_google_id: string | null;
+  created_at: string;
+}
+
 export interface Recorrencia {
   id: string;
   user_id: string;
@@ -25,6 +73,8 @@ export interface Recorrencia {
   valor_variavel: boolean;
   area_id: string | null;
   categoria_id: string | null;
+  /** De onde vem a receita. Só faz sentido quando tipo = 'entrada'. */
+  origem_id: string | null;
   conta_id: string | null;
   cartao_id: string | null;
   responsavel: Responsavel;
