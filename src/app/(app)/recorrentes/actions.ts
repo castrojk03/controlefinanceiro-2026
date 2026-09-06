@@ -159,6 +159,109 @@ export async function criarRecorrencia(formData: FormData): Promise<Resultado> {
   return { ok: true, criadas: datas.length };
 }
 
+/** Alcance da edição, no modelo do Google Agenda. */
+export type AlcanceEdicao = 'esta' | 'seguintes' | 'todas';
+
+/**
+ * Edita uma recorrência.
+ *
+ * O alcance decide o que muda, e nenhum deles mexe em ocorrência já paga —
+ * pagamento é histórico, não previsão:
+ *
+ *   esta       → só a ocorrência da data escolhida, que se desliga da regra
+ *   seguintes  → a regra passa a valer da data em diante; anteriores ficam
+ *   todas      → a regra e todas as ocorrências não pagas
+ */
+export async function editarRecorrencia(
+  formData: FormData
+): Promise<Resultado> {
+  const id = String(formData.get('id') ?? '');
+  const alcance = String(formData.get('alcance') ?? 'todas') as AlcanceEdicao;
+  const aPartirDe = String(formData.get('a_partir_de') ?? '');
+
+  if (!id) return { erro: 'Recorrência não identificada.' };
+
+  const dados = lerFormulario(formData);
+  const problema = validar(dados);
+  if (problema) return { erro: problema };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { erro: 'Sessão expirada. Entre novamente.' };
+
+  // Campos que valem para qualquer ocorrência gerada pela regra
+  const camposDoLancamento = {
+    descricao: dados.descricao,
+    valor: dados.valor,
+    valor_previsto: dados.valor,
+    area_id: dados.area_id,
+    categoria_id: dados.categoria_id,
+    conta_id: dados.conta_id,
+    cartao_id: dados.cartao_id,
+    responsavel: dados.responsavel,
+    tipo: dados.tipo,
+    editado_em: new Date().toISOString(),
+  };
+
+  // ----- só esta ocorrência -----
+  if (alcance === 'esta') {
+    if (!aPartirDe) return { erro: 'Data da ocorrência não informada.' };
+
+    const { error } = await supabase
+      .from('lancamentos')
+      .update({ ...camposDoLancamento, desligado_da_regra: true })
+      .eq('recorrencia_id', id)
+      .eq('data', aPartirDe)
+      .neq('status', 'pago');
+
+    if (error) {
+      console.error('[recorrencias] falha ao editar uma ocorrência:', error);
+      return { erro: traduzirErro(error.message) };
+    }
+
+    revalidatePath('/recorrentes');
+    revalidatePath('/');
+    return { ok: true };
+  }
+
+  // ----- a regra muda -----
+  const { error: erroRegra } = await supabase
+    .from('recorrencias')
+    .update(dados)
+    .eq('id', id);
+
+  if (erroRegra) {
+    console.error('[recorrencias] falha ao editar a regra:', erroRegra);
+    return { erro: traduzirErro(erroRegra.message) };
+  }
+
+  // Ocorrências atingidas: nunca as pagas, nunca as já desligadas da regra
+  let consulta = supabase
+    .from('lancamentos')
+    .update(camposDoLancamento)
+    .eq('recorrencia_id', id)
+    .eq('desligado_da_regra', false)
+    .neq('status', 'pago');
+
+  if (alcance === 'seguintes') {
+    if (!aPartirDe) return { erro: 'Data de início não informada.' };
+    consulta = consulta.gte('data', aPartirDe);
+  }
+
+  const { error: erroLanc } = await consulta;
+
+  if (erroLanc) {
+    console.error('[recorrencias] falha ao propagar a edição:', erroLanc);
+    return { erro: traduzirErro(erroLanc.message) };
+  }
+
+  revalidatePath('/recorrentes');
+  revalidatePath('/');
+  return { ok: true };
+}
+
 /**
  * Encerra a recorrência a partir de uma data, sem apagar histórico.
  * As ocorrências futuras ainda não pagas são removidas; as pagas ficam.

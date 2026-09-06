@@ -4,8 +4,10 @@ import { useMemo, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import {
   criarRecorrencia,
+  editarRecorrencia,
   encerrarRecorrencia,
   excluirRecorrencia,
+  type AlcanceEdicao,
 } from '@/app/(app)/recorrentes/actions';
 import { descreverRecorrencia, gerarOcorrencias } from '@/lib/recorrencia';
 import type {
@@ -29,7 +31,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, Trash2, CalendarClock, Ban, ArrowDown, ArrowUp } from 'lucide-react';
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  CalendarClock,
+  Ban,
+  ArrowDown,
+  ArrowUp,
+} from 'lucide-react';
 
 const moeda = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
@@ -58,6 +68,16 @@ export function PainelRecorrentes({
 }: Props) {
   const [pendente, iniciar] = useTransition();
   const [aberto, setAberto] = useState(false);
+
+  // Edição: qual recorrência, com que alcance e a partir de quando
+  const [editando, setEditando] = useState<Recorrencia | null>(null);
+  const [alcance, setAlcance] = useState<AlcanceEdicao>('seguintes');
+  const [aPartirDe, setAPartirDe] = useState(() =>
+    new Date().toISOString().slice(0, 10)
+  );
+  const [novoValor, setNovoValor] = useState('');
+  const [novaDescricao, setNovaDescricao] = useState('');
+  const [areaEdicao, setAreaEdicao] = useState('');
 
   // Campos que mudam o formulário conforme o preenchimento
   const [tipo, setTipo] = useState<'entrada' | 'saida'>('saida');
@@ -130,6 +150,27 @@ export function PainelRecorrentes({
           : 'Cadastrada.'
       );
       setAberto(false);
+    });
+  }
+
+  function abrirEdicao(rec: Recorrencia) {
+    setEditando(rec);
+    setNovoValor(String(rec.valor));
+    setNovaDescricao(rec.descricao);
+    setAreaEdicao(rec.area_id ?? '');
+    setAlcance('seguintes');
+    setAPartirDe(new Date().toISOString().slice(0, 10));
+  }
+
+  function salvarEdicao(formData: FormData) {
+    iniciar(async () => {
+      const r = await editarRecorrencia(formData);
+      if ('erro' in r) {
+        toast.error(r.erro);
+        return;
+      }
+      toast.success('Recorrência atualizada.');
+      setEditando(null);
     });
   }
 
@@ -242,6 +283,14 @@ export function PainelRecorrentes({
                     <Button
                       variant="ghost"
                       size="icon"
+                      onClick={() => abrirEdicao(rec)}
+                      title="Editar"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => encerrar(rec)}
                       title="Encerrar"
                     >
@@ -285,6 +334,256 @@ export function PainelRecorrentes({
           </CardContent>
         </Card>
       )}
+
+      {/* ---------------- EDIÇÃO ---------------- */}
+      <Dialog open={!!editando} onOpenChange={(o) => !o && setEditando(null)}>
+        <DialogContent className="sm:max-w-md">
+          {editando && (
+            <form action={salvarEdicao}>
+              <DialogHeader>
+                <DialogTitle>Editar recorrência</DialogTitle>
+                <DialogDescription>
+                  Ocorrências já pagas nunca são alteradas — pagamento é
+                  histórico, não previsão.
+                </DialogDescription>
+              </DialogHeader>
+
+              <input type="hidden" name="id" value={editando.id} />
+              <input type="hidden" name="alcance" value={alcance} />
+              <input type="hidden" name="a_partir_de" value={aPartirDe} />
+              <input type="hidden" name="tipo" value={editando.tipo} />
+              <input type="hidden" name="frequencia" value={editando.frequencia} />
+              <input type="hidden" name="intervalo" value={editando.intervalo} />
+              <input type="hidden" name="inicio" value={editando.inicio} />
+              <input type="hidden" name="fim_tipo" value={editando.fim_tipo} />
+              {editando.fim_data && (
+                <input type="hidden" name="fim_data" value={editando.fim_data} />
+              )}
+              {editando.fim_ocorrencias && (
+                <input
+                  type="hidden"
+                  name="fim_ocorrencias"
+                  value={editando.fim_ocorrencias}
+                />
+              )}
+              {editando.dias_semana?.map((d) => (
+                <input key={d} type="hidden" name="dias_semana" value={d} />
+              ))}
+
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-descricao">Descrição</Label>
+                  <Input
+                    id="edit-descricao"
+                    name="descricao"
+                    required
+                    value={novaDescricao}
+                    onChange={(e) => setNovaDescricao(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-valor">Valor</Label>
+                    <Input
+                      id="edit-valor"
+                      name="valor"
+                      inputMode="decimal"
+                      required
+                      value={novoValor}
+                      onChange={(e) => setNovoValor(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-end pb-2.5">
+                    <label className="flex cursor-pointer items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        name="valor_variavel"
+                        defaultChecked={editando.valor_variavel}
+                        className="h-4 w-4 rounded border-input"
+                      />
+                      Valor variável
+                    </label>
+                  </div>
+                </div>
+
+                {editando.frequencia === 'mensal' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-dia">Vence todo dia</Label>
+                    <Input
+                      id="edit-dia"
+                      name="dia_do_mes"
+                      type="number"
+                      min={1}
+                      max={31}
+                      defaultValue={editando.dia_do_mes ?? ''}
+                      className="w-24"
+                    />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-area">Área</Label>
+                    <select
+                      id="edit-area"
+                      name="area_id"
+                      value={areaEdicao}
+                      onChange={(e) => setAreaEdicao(e.target.value)}
+                      className={campoSelect}
+                    >
+                      <option value="">Nenhuma</option>
+                      {areas.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-categoria">Categoria</Label>
+                    <select
+                      id="edit-categoria"
+                      name="categoria_id"
+                      defaultValue={editando.categoria_id ?? ''}
+                      disabled={!areaEdicao}
+                      className={campoSelect}
+                    >
+                      <option value="">Nenhuma</option>
+                      {categorias
+                        .filter((c) => c.area_id === areaEdicao)
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-conta">Sai da conta</Label>
+                    <select
+                      id="edit-conta"
+                      name="conta_id"
+                      defaultValue={editando.conta_id ?? ''}
+                      className={campoSelect}
+                    >
+                      <option value="">Nenhuma</option>
+                      {contas.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-cartao">Ou no cartão</Label>
+                    <select
+                      id="edit-cartao"
+                      name="cartao_id"
+                      defaultValue={editando.cartao_id ?? ''}
+                      className={campoSelect}
+                    >
+                      <option value="">Nenhum</option>
+                      {cartoes.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-responsavel">Responsável</Label>
+                  <select
+                    id="edit-responsavel"
+                    name="responsavel"
+                    defaultValue={editando.responsavel}
+                    className={campoSelect}
+                  >
+                    <option value="casal">Casal</option>
+                    <option value="john">John</option>
+                    <option value="amanda">Amanda</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2 rounded-md border p-3">
+                  <p className="text-sm font-medium">Aplicar a</p>
+
+                  <label className="flex items-start gap-2 text-sm">
+                    <input
+                      type="radio"
+                      className="mt-1"
+                      checked={alcance === 'esta'}
+                      onChange={() => setAlcance('esta')}
+                    />
+                    <span>
+                      Apenas uma ocorrência
+                      <span className="block text-xs text-muted-foreground">
+                        Ela se desliga da regra e não muda mais junto.
+                      </span>
+                    </span>
+                  </label>
+
+                  <label className="flex items-start gap-2 text-sm">
+                    <input
+                      type="radio"
+                      className="mt-1"
+                      checked={alcance === 'seguintes'}
+                      onChange={() => setAlcance('seguintes')}
+                    />
+                    <span>
+                      Esta e as seguintes
+                      <span className="block text-xs text-muted-foreground">
+                        As anteriores ficam como estão.
+                      </span>
+                    </span>
+                  </label>
+
+                  <label className="flex items-start gap-2 text-sm">
+                    <input
+                      type="radio"
+                      className="mt-1"
+                      checked={alcance === 'todas'}
+                      onChange={() => setAlcance('todas')}
+                    />
+                    <span>
+                      Todas as ocorrências
+                      <span className="block text-xs text-muted-foreground">
+                        Inclusive as que já passaram e não foram pagas.
+                      </span>
+                    </span>
+                  </label>
+
+                  {alcance !== 'todas' && (
+                    <div className="space-y-1.5 pt-1">
+                      <Label htmlFor="edit-data" className="text-xs">
+                        {alcance === 'esta' ? 'Qual ocorrência' : 'A partir de'}
+                      </Label>
+                      <Input
+                        id="edit-data"
+                        type="date"
+                        value={aPartirDe}
+                        onChange={(e) => setAPartirDe(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button type="submit" disabled={pendente}>
+                  {pendente ? 'Salvando…' : 'Salvar'}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ---------------- FORMULÁRIO ---------------- */}
       <Dialog open={aberto} onOpenChange={setAberto}>
