@@ -29,7 +29,7 @@ const TELAS = [
   { href: '/limites', rotulo: 'Limites', Icone: Gauge, pronta: false },
   { href: '/painel-geral', rotulo: 'Painel Geral', Icone: Table, pronta: true },
   { href: '/painel-diario', rotulo: 'Painel Diário', Icone: CalendarDays, pronta: true },
-  { href: '/calendario', rotulo: 'Calendário', Icone: Calendar, pronta: false },
+  { href: '/calendario', rotulo: 'Calendário', Icone: Calendar, pronta: true },
   { href: '/faturas', rotulo: 'Faturas', Icone: Receipt, pronta: true },
   { href: '/simulacao', rotulo: 'Simulação', Icone: Calculator, pronta: false },
   { href: '/relatorios', rotulo: 'Relatórios', Icone: BarChart3, pronta: true },
