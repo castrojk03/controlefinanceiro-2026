@@ -40,11 +40,16 @@ export default async function PaginaInicio({
         .eq('transferencia_interna', false)
         .gte('data', iso(primeiroDoMes))
         .lte('data', iso(ultimoDoMes)),
-      // O que vence na janela e ainda não foi pago
+      // O que vence na janela e ainda não foi pago.
+      // Sem as despesas de cartão, pelo mesmo motivo do bloco de vencidos:
+      // o total desta lista é "o que preciso pagar", e compra no cartão não
+      // se paga aqui — se paga na fatura, no dia do vencimento dela. O que
+      // o cartão deve aparece na tela de Faturas.
       supabase
         .from('lancamentos')
         .select('*')
         .neq('status', 'pago')
+        .is('cartao_id', null)
         .gte('data', iso(hoje))
         .lte('data', iso(limiteJanela))
         .order('data'),
@@ -55,11 +60,16 @@ export default async function PaginaInicio({
         .eq('status', 'pago')
         .order('data_pagamento', { ascending: false })
         .limit(5),
-      // Vencidos e não pagos — o que não pode passar despercebido
+      // Vencidos e não pagos — o que não pode passar despercebido.
+      // Despesa de cartão fica de fora: a data dela é a da compra, não a
+      // de um vencimento. Uma compra de 11/set no cartão que fecha dia 5
+      // vence em 13/out, junto com a fatura — chamá-la de atrasada é o
+      // sistema mentindo sobre a situação de quem olha.
       supabase
         .from('lancamentos')
         .select('*')
         .neq('status', 'pago')
+        .is('cartao_id', null)
         .lt('data', iso(hoje))
         .order('data'),
     ]);
