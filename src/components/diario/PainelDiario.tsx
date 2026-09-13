@@ -3,12 +3,18 @@
 import Link from 'next/link';
 import type { Lancamento } from '@/types/financeiro';
 import { Card, CardContent } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ArrowUp,
+  ArrowDown,
+  CreditCard,
+} from 'lucide-react';
 
 const moeda = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
-/** Sem o símbolo, para a tabela não ficar com "R$" repetido 31 vezes. */
+/** Sem o símbolo: "R$" repetido 31 vezes vira ruído na tabela. */
 const numero = (v: number) =>
   new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2 }).format(v);
 
@@ -19,15 +25,27 @@ const MESES = [
 
 const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 
+/** A fatura de um cartão caindo no dia do vencimento. */
+export interface FaturaDoDia {
+  cartao: string;
+  valor: number;
+  /** Fechada é valor firme; aberta ainda pode crescer até o fechamento. */
+  fechada: boolean;
+}
+
 export interface DiaDoMes {
   data: string;
   diaDaSemana: number;
   entrada: number;
-  saida: number;
+  /** Tudo que foi gasto no dia — conta e cartão. */
+  gastoDoDia: number;
+  /** Só o que tocou o dinheiro, mais a fatura que vence hoje. */
+  saiuDaConta: number;
   /** Nulo nos dias anteriores a hoje: não foi medido, não se inventa. */
   saldo: number | null;
   ehHoje: boolean;
   lancamentos: Lancamento[];
+  faturas: FaturaDoDia[];
 }
 
 interface Props {
@@ -35,7 +53,7 @@ interface Props {
   mes: number;
   ano: number;
   entrouNoMes: number;
-  saiuNoMes: number;
+  gastoNoMes: number;
   saldoHoje: number;
   hoje: string;
   erro: string | null;
@@ -46,7 +64,7 @@ export function PainelDiario({
   mes,
   ano,
   entrouNoMes,
-  saiuNoMes,
+  gastoNoMes,
   saldoHoje,
   hoje,
   erro,
@@ -54,11 +72,12 @@ export function PainelDiario({
   const anterior = mes === 1 ? { mes: 12, ano: ano - 1 } : { mes: mes - 1, ano };
   const seguinte = mes === 12 ? { mes: 1, ano: ano + 1 } : { mes: mes + 1, ano };
 
-  // O primeiro dia em que o saldo fica negativo — o aperto antes de
+  // O primeiro dia em que o saldo fica negativo: o aperto antes de
   // acontecer, que é a razão de a tela existir.
   const aperto = dias.find((d) => d.saldo !== null && d.saldo < 0);
 
-  const dataCurta = (iso: string) => iso.slice(8, 10);
+  const dia = (iso: string) => iso.slice(8, 10);
+  const mm = String(mes).padStart(2, '0');
 
   if (erro) {
     return (
@@ -74,7 +93,7 @@ export function PainelDiario({
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Painel Diário</h1>
           <p className="text-sm text-muted-foreground">
-            Como está hoje e o que vem pela frente, dia a dia.
+            Quanto você gasta por dia e o que ainda vai sair da conta.
           </p>
         </div>
 
@@ -114,16 +133,17 @@ export function PainelDiario({
           <CardContent className="pt-5">
             <div className="mb-2 flex items-center gap-2 text-muted-foreground">
               <ArrowDown className="h-4 w-4" />
-              <span className="text-sm">Saiu no mês</span>
+              <span className="text-sm">Gasto no mês</span>
             </div>
-            <p className="text-xl font-semibold tabular-nums">{moeda(saiuNoMes)}</p>
+            <p className="text-xl font-semibold tabular-nums">{moeda(gastoNoMes)}</p>
+            <p className="mt-1 text-xs text-muted-foreground">conta e cartão</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="pt-5">
             <p className="mb-2 text-sm text-muted-foreground">
-              Saldo em {dataCurta(hoje)}/{String(mes).padStart(2, '0')}
+              Saldo em {dia(hoje)}/{hoje.slice(5, 7)}
             </p>
             <p
               className={`text-xl font-semibold tabular-nums ${
@@ -140,7 +160,7 @@ export function PainelDiario({
         <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           O saldo fica negativo em{' '}
           <strong>
-            {dataCurta(aperto.data)}/{String(mes).padStart(2, '0')}
+            {dia(aperto.data)}/{mm}
           </strong>{' '}
           — {moeda(aperto.saldo ?? 0)}.
         </div>
@@ -154,16 +174,16 @@ export function PainelDiario({
                 <tr className="border-b text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="px-3 py-2.5 text-left font-medium">Dia</th>
                   <th className="px-3 py-2.5 text-right font-medium">Entrada</th>
-                  <th className="px-3 py-2.5 text-right font-medium">Saída</th>
-                  <th className="px-3 py-2.5 text-right font-medium">Do dia</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Gasto do dia</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Saiu da conta</th>
                   <th className="px-3 py-2.5 text-right font-medium">Saldo</th>
-                  <th className="px-3 py-2.5 text-left font-medium">Lançamentos</th>
+                  <th className="px-3 py-2.5 text-left font-medium">O quê</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {dias.map((d) => {
-                  const liquido = d.entrada - d.saida;
-                  const vazio = d.entrada === 0 && d.saida === 0;
+                  const vazio =
+                    d.entrada === 0 && d.gastoDoDia === 0 && d.faturas.length === 0;
 
                   return (
                     <tr
@@ -177,7 +197,7 @@ export function PainelDiario({
                       }
                     >
                       <td className="whitespace-nowrap px-3 py-2">
-                        {dataCurta(d.data)}{' '}
+                        {dia(d.data)}{' '}
                         <span className="text-xs text-muted-foreground">
                           {SEMANA[d.diaDaSemana]}
                         </span>
@@ -188,19 +208,18 @@ export function PainelDiario({
                         )}
                       </td>
 
-                      <td className="px-3 py-2 text-right tabular-nums">
+                      <td className="px-3 py-2 text-right tabular-nums text-emerald-700">
                         {d.entrada > 0 ? numero(d.entrada) : '—'}
                       </td>
+
                       <td className="px-3 py-2 text-right tabular-nums">
-                        {d.saida > 0 ? numero(d.saida) : '—'}
+                        {d.gastoDoDia > 0 ? numero(d.gastoDoDia) : '—'}
                       </td>
-                      <td
-                        className={`px-3 py-2 text-right tabular-nums ${
-                          liquido < 0 ? 'text-destructive' : liquido > 0 ? 'text-emerald-700' : ''
-                        }`}
-                      >
-                        {vazio ? '—' : `${liquido > 0 ? '+' : ''}${numero(liquido)}`}
+
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {d.saiuDaConta > 0 ? numero(d.saiuDaConta) : '—'}
                       </td>
+
                       <td
                         className={`px-3 py-2 text-right font-medium tabular-nums ${
                           d.saldo !== null && d.saldo < 0 ? 'text-destructive' : ''
@@ -209,10 +228,24 @@ export function PainelDiario({
                         {d.saldo === null ? '—' : numero(d.saldo)}
                       </td>
 
-                      <td className="max-w-[260px] truncate px-3 py-2 text-muted-foreground">
-                        {d.lancamentos.length === 0
-                          ? '—'
-                          : d.lancamentos.map((l) => l.descricao).join(' · ')}
+                      <td className="max-w-[280px] px-3 py-2 text-muted-foreground">
+                        {d.faturas.map((f) => (
+                          <span
+                            key={f.cartao}
+                            className="mr-2 inline-flex items-center gap-1 whitespace-nowrap rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700"
+                          >
+                            <CreditCard className="h-3 w-3" />
+                            fatura {f.cartao}
+                            {!f.fechada && ' · aberta'}
+                          </span>
+                        ))}
+                        <span className="align-middle">
+                          {d.lancamentos.length === 0
+                            ? d.faturas.length === 0
+                              ? '—'
+                              : ''
+                            : d.lancamentos.map((l) => l.descricao).join(' · ')}
+                        </span>
                       </td>
                     </tr>
                   );
@@ -223,11 +256,20 @@ export function PainelDiario({
         </CardContent>
       </Card>
 
-      <p className="text-xs text-muted-foreground">
-        O saldo corre a partir de hoje, com o que as contas de fato têm. Os dias
-        já passados mostram o movimento, mas não o saldo: a gestão começou em
-        13/09/2026 e reconstruir o que veio antes seria inventar precisão.
-      </p>
+      <div className="space-y-1.5 text-xs text-muted-foreground">
+        <p>
+          <strong className="font-medium text-foreground">Gasto do dia</strong> é
+          tudo que você gastou naquele dia, na conta ou no cartão — o almoço de
+          R$ 27 no crédito conta aqui, no dia em que aconteceu.{' '}
+          <strong className="font-medium text-foreground">Saiu da conta</strong> é
+          só o que tocou o dinheiro, e a fatura entra como uma linha só, no
+          vencimento. O saldo corre sobre essa segunda coluna.
+        </p>
+        <p>
+          As faturas ainda abertas aparecem pelo que já foi gasto até agora e
+          vão crescer até o fechamento do cartão.
+        </p>
+      </div>
     </div>
   );
 }
