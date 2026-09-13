@@ -32,7 +32,7 @@ const TELAS = [
   { href: '/calendario', rotulo: 'Calendário', Icone: Calendar, pronta: false },
   { href: '/faturas', rotulo: 'Faturas', Icone: Receipt, pronta: true },
   { href: '/simulacao', rotulo: 'Simulação', Icone: Calculator, pronta: false },
-  { href: '/relatorios', rotulo: 'Relatórios', Icone: BarChart3, pronta: false },
+  { href: '/relatorios', rotulo: 'Relatórios', Icone: BarChart3, pronta: true },
   { href: '/configuracoes', rotulo: 'Configurações', Icone: Settings, pronta: true },
 ] as const;
 
