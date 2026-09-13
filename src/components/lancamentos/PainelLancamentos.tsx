@@ -416,7 +416,9 @@ export function PainelLancamentos({
                       </td>
                       <td className="py-2.5">
                         <div className="flex justify-end gap-1">
-                          {l.status !== 'pago' && (
+                          {/* Despesa de cartão não se paga sozinha: entra na
+                              fatura e sai da conta no vencimento do cartão. */}
+                          {l.status !== 'pago' && !l.cartao_id && (
                             <Button
                               variant="outline"
                               size="sm"

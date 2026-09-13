@@ -231,9 +231,17 @@ export function PainelInicio({
                   </span>
                   <span className="min-w-0 flex-1 truncate">{l.descricao}</span>
                   <span className="tabular-nums">{moeda(Number(l.valor))}</span>
-                  <Button size="sm" variant="outline" onClick={() => abrirPagamento(l)}>
-                    pagar
-                  </Button>
+                  {/* Despesa de cartão entra na fatura; quem se paga é a
+                      fatura, no vencimento do cartão. */}
+                  {l.cartao_id ? (
+                    <span className="w-[68px] shrink-0 text-right text-xs text-muted-foreground">
+                      na fatura
+                    </span>
+                  ) : (
+                    <Button size="sm" variant="outline" onClick={() => abrirPagamento(l)}>
+                      pagar
+                    </Button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -289,9 +297,15 @@ export function PainelInicio({
                     )}
                   </span>
                   <span className="tabular-nums">{moeda(Number(l.valor))}</span>
-                  <Button size="sm" variant="outline" onClick={() => abrirPagamento(l)}>
-                    pagar
-                  </Button>
+                  {l.cartao_id ? (
+                    <span className="w-[68px] shrink-0 text-right text-xs text-muted-foreground">
+                      na fatura
+                    </span>
+                  ) : (
+                    <Button size="sm" variant="outline" onClick={() => abrirPagamento(l)}>
+                      pagar
+                    </Button>
+                  )}
                 </li>
               ))}
             </ul>
