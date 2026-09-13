@@ -1,9 +1,10 @@
 'use client';
 
+import { Fragment, useState } from 'react';
 import Link from 'next/link';
 import type { ClassificacaoArea } from '@/types/financeiro';
 import { Card, CardContent } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 
 /** Sem símbolo e sem centavos: 13 colunas de "R$ 1.234,56" viram ruído. */
 const numero = (v: number) =>
@@ -22,11 +23,19 @@ const MESES_LONGOS = [
   'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
 ];
 
+export interface SubLinha {
+  id: string;
+  nome: string;
+  meses: number[];
+}
+
 export interface LinhaDaGrade {
   id: string;
   nome: string;
   classificacao: ClassificacaoArea | null;
   meses: number[];
+  /** As categorias dentro da área, da que mais gastou para a que menos. */
+  categorias: SubLinha[];
 }
 
 interface Props {
@@ -49,6 +58,19 @@ export function PainelGeral({
   mesCorrente,
   erro,
 }: Props) {
+  // Todas recolhidas ao abrir: a grade de áreas é a leitura principal, e
+  // as categorias são o detalhe de quem foi procurar.
+  const [abertas, setAbertas] = useState<Set<string>>(new Set());
+
+  function alternar(id: string) {
+    setAbertas((atual) => {
+      const proximo = new Set(atual);
+      if (proximo.has(id)) proximo.delete(id);
+      else proximo.add(id);
+      return proximo;
+    });
+  }
+
   const somaAno = (m: number[]) => m.reduce((s, v) => s + v, 0);
 
   /** Uma célula vazia é traço, não zero: zero afirma, traço não. */
@@ -145,31 +167,83 @@ export function PainelGeral({
                     </td>
                   </tr>
 
-                  {linhas.map((linha) => (
-                    <tr key={linha.id}>
-                      <td className="sticky left-0 z-10 whitespace-nowrap bg-card px-3 py-2">
-                        {linha.nome}
-                      </td>
-                      {linha.meses.map((v, i) => (
-                        <td
-                          key={i}
-                          title={
-                            v > 0
-                              ? `${linha.nome} · ${MESES_LONGOS[i]} · ${moeda(v)}`
-                              : undefined
-                          }
-                          className={`px-2 py-2 text-right tabular-nums ${
-                            i === mesCorrente ? 'bg-muted/40' : ''
-                          } ${v === 0 ? 'text-muted-foreground' : ''}`}
-                        >
-                          {celula(v)}
-                        </td>
-                      ))}
-                      <td className="px-3 py-2 text-right font-medium tabular-nums">
-                        {celula(somaAno(linha.meses))}
-                      </td>
-                    </tr>
-                  ))}
+                  {linhas.map((linha) => {
+                    const aberta = abertas.has(linha.id);
+                    const temDetalhe = linha.categorias.length > 0;
+
+                    return (
+                      <Fragment key={linha.id}>
+                        <tr>
+                          <td className="sticky left-0 z-10 whitespace-nowrap bg-card px-3 py-2">
+                            {temDetalhe ? (
+                              <button
+                                type="button"
+                                onClick={() => alternar(linha.id)}
+                                aria-expanded={aberta}
+                                className="flex items-center gap-1 hover:text-foreground"
+                              >
+                                <ChevronDown
+                                  className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform ${
+                                    aberta ? '' : '-rotate-90'
+                                  }`}
+                                />
+                                {linha.nome}
+                              </button>
+                            ) : (
+                              <span className="pl-[18px]">{linha.nome}</span>
+                            )}
+                          </td>
+                          {linha.meses.map((v, i) => (
+                            <td
+                              key={i}
+                              title={
+                                v > 0
+                                  ? `${linha.nome} · ${MESES_LONGOS[i]} · ${moeda(v)}`
+                                  : undefined
+                              }
+                              className={`px-2 py-2 text-right tabular-nums ${
+                                i === mesCorrente ? 'bg-muted/40' : ''
+                              } ${v === 0 ? 'text-muted-foreground' : ''}`}
+                            >
+                              {celula(v)}
+                            </td>
+                          ))}
+                          <td className="px-3 py-2 text-right font-medium tabular-nums">
+                            {celula(somaAno(linha.meses))}
+                          </td>
+                        </tr>
+
+                        {/* A sazonalidade mora aqui: "Habitação subiu" não
+                            diz nada, "o gás subiu em julho" diz. */}
+                        {aberta &&
+                          linha.categorias.map((sub) => (
+                            <tr key={sub.id} className="text-muted-foreground">
+                              <td className="sticky left-0 z-10 whitespace-nowrap bg-card py-1.5 pl-9 pr-3 text-xs">
+                                {sub.nome}
+                              </td>
+                              {sub.meses.map((v, i) => (
+                                <td
+                                  key={i}
+                                  title={
+                                    v > 0
+                                      ? `${sub.nome} · ${MESES_LONGOS[i]} · ${moeda(v)}`
+                                      : undefined
+                                  }
+                                  className={`px-2 py-1.5 text-right text-xs tabular-nums ${
+                                    i === mesCorrente ? 'bg-muted/40' : ''
+                                  }`}
+                                >
+                                  {celula(v)}
+                                </td>
+                              ))}
+                              <td className="px-3 py-1.5 text-right text-xs tabular-nums">
+                                {celula(somaAno(sub.meses))}
+                              </td>
+                            </tr>
+                          ))}
+                      </Fragment>
+                    );
+                  })}
 
                   <tr className="border-t-2 font-medium">
                     <td className="sticky left-0 z-10 bg-card px-3 py-2">
