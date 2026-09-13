@@ -228,7 +228,7 @@ export function PainelDiario({
                         {d.saldo === null ? '—' : numero(d.saldo)}
                       </td>
 
-                      <td className="max-w-[280px] px-3 py-2 text-muted-foreground">
+                      <td className="min-w-[240px] px-3 py-2 text-muted-foreground">
                         {d.faturas.map((f) => (
                           <span
                             key={f.cartao}
@@ -239,13 +239,22 @@ export function PainelDiario({
                             {!f.fechada && ' · aberta'}
                           </span>
                         ))}
-                        <span className="align-middle">
-                          {d.lancamentos.length === 0
-                            ? d.faturas.length === 0
-                              ? '—'
-                              : ''
-                            : d.lancamentos.map((l) => l.descricao).join(' · ')}
-                        </span>
+                        {d.lancamentos.length === 0 && d.faturas.length === 0 && '—'}
+
+                        {/* Cada lançamento é seu próprio elemento para o
+                            valor caber no title: a lista mostra onde o
+                            dinheiro foi, o hover mostra quanto. */}
+                        {d.lancamentos.map((l, i) => (
+                          <span key={l.id}>
+                            {i > 0 && <span className="opacity-40"> · </span>}
+                            <span
+                              title={`${l.descricao} · ${moeda(Number(l.valor))}`}
+                              className="cursor-help underline decoration-dotted decoration-muted-foreground/40 underline-offset-2"
+                            >
+                              {l.descricao}
+                            </span>
+                          </span>
+                        ))}
                       </td>
                     </tr>
                   );
