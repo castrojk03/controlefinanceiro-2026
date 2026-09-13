@@ -177,10 +177,14 @@ export function PainelLancamentos({
     });
   }
 
-  const entradas = lancamentos
+  // Transferência entre as contas do casal aparece na lista — ela mexeu no
+  // saldo — mas fica fora dos totais: não é dinheiro entrando nem saindo.
+  const doBolso = lancamentos.filter((l) => !l.transferencia_interna);
+
+  const entradas = doBolso
     .filter((l) => l.tipo === 'entrada')
     .reduce((s, l) => s + Number(l.valor), 0);
-  const saidas = lancamentos
+  const saidas = doBolso
     .filter((l) => l.tipo === 'saida')
     .reduce((s, l) => s + Number(l.valor), 0);
 

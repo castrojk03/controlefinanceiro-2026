@@ -60,6 +60,11 @@ export interface Lancamento {
   desligado_da_regra: boolean;
   parcela_numero: number | null;
   parcela_total: number | null;
+  /**
+   * Dinheiro entre as contas do casal. Move saldo, mas não é receita nem
+   * despesa: toda soma de entrada/saída precisa deixar isto de fora.
+   */
+  transferencia_interna: boolean;
   tarefa_google_id: string | null;
   created_at: string;
 }

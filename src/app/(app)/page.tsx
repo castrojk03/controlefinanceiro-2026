@@ -31,10 +31,13 @@ export default async function PaginaInicio({
     await Promise.all([
       supabase.from('accounts').select('*').order('name'),
       supabase.from('cards').select('*').order('name'),
-      // Movimento do mês corrente, para receitas e despesas
+      // Movimento do mês corrente, para receitas e despesas.
+      // Transferência entre as contas do casal fica de fora: move saldo,
+      // mas não é dinheiro entrando nem saindo do bolso dos dois.
       supabase
         .from('lancamentos')
         .select('tipo, valor, status')
+        .eq('transferencia_interna', false)
         .gte('data', iso(primeiroDoMes))
         .lte('data', iso(ultimoDoMes)),
       // O que vence na janela e ainda não foi pago
