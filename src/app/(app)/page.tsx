@@ -94,8 +94,16 @@ export default async function PaginaInicio({
     .filter((l) => l.tipo === 'entrada')
     .reduce((s, l) => s + Number(l.valor), 0);
 
-  const despesasMes = doMes
-    .filter((l) => l.tipo === 'saida')
+  const saidasDoMes = doMes.filter((l) => l.tipo === 'saida');
+
+  const despesasMes = saidasDoMes.reduce((s, l) => s + Number(l.valor), 0);
+
+  // O total do mês mistura três coisas: o que já saiu da conta, o que
+  // ainda vai sair e o que sai pela fatura do cartão. Separar o pago do
+  // restante é o que responde "quanto ainda preciso pagar" sem obrigar
+  // quem olha a somar de cabeça.
+  const despesasPagas = saidasDoMes
+    .filter((l) => l.status === 'pago')
     .reduce((s, l) => s + Number(l.valor), 0);
 
   return (
@@ -105,6 +113,7 @@ export default async function PaginaInicio({
       saldoTotal={saldoTotal}
       receitasMes={receitasMes}
       despesasMes={despesasMes}
+      despesasPagas={despesasPagas}
       vencimentos={(venceRes.data ?? []) as Lancamento[]}
       atrasados={(atrasadosRes.data ?? []) as Lancamento[]}
       ultimos={(ultimosRes.data ?? []) as Lancamento[]}

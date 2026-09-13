@@ -53,6 +53,8 @@ interface Props {
   saldoTotal: number;
   receitasMes: number;
   despesasMes: number;
+  /** Quanto do total do mês já saiu da conta. */
+  despesasPagas: number;
   vencimentos: Lancamento[];
   atrasados: Lancamento[];
   ultimos: Lancamento[];
@@ -66,6 +68,7 @@ export function PainelInicio({
   saldoTotal,
   receitasMes,
   despesasMes,
+  despesasPagas,
   vencimentos,
   atrasados,
   ultimos,
@@ -177,7 +180,19 @@ export function PainelInicio({
             <p className="text-2xl font-semibold tabular-nums">
               {moeda(despesasMes)}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">previsto e realizado</p>
+            {/* O total sozinho não diz o que importa: quanto ainda falta
+                sair. A segunda linha separa o que já foi do que vem. */}
+            <p className="mt-1 text-xs text-muted-foreground">
+              {moeda(despesasPagas)} pago
+              {despesasMes > despesasPagas && (
+                <>
+                  {' · '}
+                  <strong className="font-medium text-foreground">
+                    {moeda(despesasMes - despesasPagas)} a pagar
+                  </strong>
+                </>
+              )}
+            </p>
           </CardContent>
         </Card>
 
