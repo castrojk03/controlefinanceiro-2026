@@ -26,7 +26,7 @@ const TELAS = [
   { href: '/', rotulo: 'Início', Icone: Home, pronta: true },
   { href: '/lancamentos', rotulo: 'Lançamentos', Icone: List, pronta: true },
   { href: '/recorrentes', rotulo: 'Recorrentes', Icone: CalendarClock, pronta: true },
-  { href: '/limites', rotulo: 'Limites', Icone: Gauge, pronta: false },
+  { href: '/limites', rotulo: 'Limites', Icone: Gauge, pronta: true },
   { href: '/painel-geral', rotulo: 'Painel Geral', Icone: Table, pronta: true },
   { href: '/painel-diario', rotulo: 'Painel Diário', Icone: CalendarDays, pronta: true },
   { href: '/calendario', rotulo: 'Calendário', Icone: Calendar, pronta: true },
