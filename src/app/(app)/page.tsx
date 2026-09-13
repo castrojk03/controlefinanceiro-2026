@@ -53,11 +53,15 @@ export default async function PaginaInicio({
         .gte('data', iso(hoje))
         .lte('data', iso(limiteJanela))
         .order('data'),
-      // Últimos lançamentos, para dar sinal de vida à tela
+      // Últimos lançamentos, para dar sinal de vida à tela.
+      // Sem acerto de abertura nem transferência entre o casal: nenhum dos
+      // dois é um pagamento que alguém fez, e ver "Acerto de abertura ·
+      // R$ 4.989,90" no topo da lista faz parecer que o dinheiro saiu.
       supabase
         .from('lancamentos')
         .select('*')
         .eq('status', 'pago')
+        .eq('transferencia_interna', false)
         .order('data_pagamento', { ascending: false })
         .limit(5),
       // Vencidos e não pagos — o que não pode passar despercebido.
