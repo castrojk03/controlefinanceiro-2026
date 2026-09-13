@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { paraNumero } from '@/lib/valor';
 
 type Resultado = { erro: string } | { ok: true };
 
@@ -21,12 +22,6 @@ function traduzirErro(mensagem: string): string {
   return mensagem;
 }
 
-function paraNumero(valor: FormDataEntryValue | null): number {
-  if (!valor) return 0;
-  const texto = String(valor).replace(/\./g, '').replace(',', '.');
-  const n = Number(texto);
-  return Number.isFinite(n) ? n : 0;
-}
 
 function lerFormulario(formData: FormData) {
   const tipo = String(formData.get('tipo') ?? 'saida') as 'entrada' | 'saida';
